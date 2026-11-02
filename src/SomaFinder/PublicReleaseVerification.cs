@@ -26,7 +26,7 @@ internal static class PublicReleaseVerification
             void Screen(string name)
             {
                 window!.UpdateLayout();var surface=(FrameworkElement)window.Content;
-                var status=CloudVerification.Descendants<TextBlock>(window).First(t=>t.Text.StartsWith("索引："));status.Text="演示资料 · 合成搜索结果，未连接后端";
+                var status=CloudVerification.Descendants<TextBlock>(window).First(t=>t.Text.StartsWith("索引：")||t.Text.StartsWith("演示资料 · 合成搜索结果"));status.Text="演示资料 · 合成搜索结果，未连接后端";
                 var bitmap=new RenderTargetBitmap((int)Math.Ceiling(surface.ActualWidth),(int)Math.Ceiling(surface.ActualHeight),96,96,PixelFormats.Pbgra32);bitmap.Render(surface);
                 File.WriteAllBytes(Path.Combine(Path.GetDirectoryName(report)!,name+".png"),ThumbnailWorker.Png(bitmap));
             }
@@ -76,7 +76,7 @@ internal static class PublicReleaseVerification
                     await Task.WhenAll(hits.Select(hit=>ResultThumbnails.Get(hit,hit.ThumbnailQuery,prefs,CancellationToken.None)));
                     window.SetView(1);await Wait(()=>CloudVerification.Descendants<Image>(window.ActiveListSurface).Count(image=>image.Source!=null)>=3);Screen("search-summary");
                     window.SetView(0);await Task.Delay(150);Screen("search-details");
-                    window.SetView(2);await Wait(()=>window.Waterfall.RealizedImages>=6);Screen("search-masonry");
+                    window.SetView(2);await Wait(()=>window.Waterfall.RealizedCount>=6&&window.Waterfall.RealizedImages==window.Waterfall.RealizedCount);Screen("search-masonry");
                     Check(app.Backend.RequestCount==requests&&window.DisplayedHits.Count==names.Length,"Showcase changed search data or queried Soma");
                 });
             }
