@@ -14,7 +14,7 @@ internal static class PublicReleaseVerification
     public static int Run(string[] args)
     {
         string report=Path.GetFullPath(args.Single(a=>a.StartsWith("--report="))[9..]);
-        string root=Path.Combine(Environment.GetEnvironmentVariable("RUNNER_TEMP")!,"SomaFinder-cloud-public-"+Guid.NewGuid().ToString("N"));CloudSandbox.Initialize(root);
+        string root=Path.Combine(Environment.GetEnvironmentVariable("RUNNER_TEMP")!,"SomaFinder-cloud-demo-"+Guid.NewGuid().ToString("N")[..8]);CloudSandbox.Initialize(root);
         var prefs=new Preferences{StartupSync=false,PeriodicSync=false,DefaultDetailLayout=DetailLayout.Both};
         var app=new FinderApplication(new Store(root+"/data",root+"/config",root+"/state"),prefs,true);var tests=new List<object>();int failures=0;
         app.Startup+=async(_,_)=>
@@ -26,6 +26,7 @@ internal static class PublicReleaseVerification
             void Screen(string name)
             {
                 window!.UpdateLayout();var surface=(FrameworkElement)window.Content;
+                var status=CloudVerification.Descendants<TextBlock>(window).First(t=>t.Text.StartsWith("索引："));status.Text="演示资料 · 合成搜索结果，未连接后端";
                 var bitmap=new RenderTargetBitmap((int)Math.Ceiling(surface.ActualWidth),(int)Math.Ceiling(surface.ActualHeight),96,96,PixelFormats.Pbgra32);bitmap.Render(surface);
                 File.WriteAllBytes(Path.Combine(Path.GetDirectoryName(report)!,name+".png"),ThumbnailWorker.Png(bitmap));
             }
@@ -51,31 +52,32 @@ internal static class PublicReleaseVerification
                     finally{settings.Close();}
                 });
                 string folder=root+"/海边旅行";Directory.CreateDirectory(folder);prefs.Volumes[folder]=Native.Identify(folder)!;
-                var names=new[]{"海边旅行·日落.png","海岸步道·旅行照片.png","海边旅行·灯塔.png"};
-                for(int i=0;i<3;i++)
+                var titles=new[]{"海边旅行·日落","海岸步道·旅行照片","海边旅行·灯塔"};var names=Enumerable.Range(0,9).Select(i=>titles[i%3]+"-"+(i/3+1)+".png").ToArray();
+                for(int i=0;i<names.Length;i++)
                 {
                     var visual=new DrawingVisual();using(var dc=visual.RenderOpen())
                     {
                         dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(168,215,239)),null,new Rect(0,0,480,300));
-                        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255,219,134)),null,new Point(350-i*75,78),27,27);
+                        dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(255,219,134)),null,new Point(350-i%3*75,78),27,27);
                         dc.DrawRectangle(new SolidColorBrush(Color.FromRgb((byte)(29+i*5),133,157)),null,new Rect(0,135,480,165));
                         dc.DrawGeometry(new SolidColorBrush(Color.FromRgb(226,206,163)),null,Geometry.Parse("M0,235 C160,175 220,290 480,230 L480,300 L0,300 Z"));
                     }
                     var bitmap=new RenderTargetBitmap(480,300,96,96,PixelFormats.Pbgra32);bitmap.Render(visual);File.WriteAllBytes(Path.Combine(folder,names[i]),ThumbnailWorker.Png(bitmap));
                 }
-                var hits=names.Select((name,i)=>new Hit{Workspace="demo",RootPath=folder,FullPath=Path.Combine(folder,name),VirtualPath="soma://demo/"+name,Snippet=new[]{"海边旅行的日落时刻，沿海岸步道散步，远处是灯塔。","旅行照片记录了蓝色海面、沙滩与傍晚的阳光。","海边旅行时经过的灯塔与安静海岸。"}[i],MatchMode="lexical"}).ToArray();
+                var hits=names.Select((name,i)=>new Hit{Workspace="demo",RootPath=folder,FullPath=Path.Combine(folder,name),VirtualPath="soma://demo/"+name,Snippet=new[]{"海边旅行的日落时刻，沿海岸步道散步，远处是灯塔。","旅行照片记录了蓝色海面、沙滩与傍晚的阳光。","海边旅行时经过的灯塔与安静海岸。"}[i%3],MatchMode="lexical",Bytes=new FileInfo(Path.Combine(folder,name)).Length,Created=DateTime.Now,Modified=DateTime.Now,Availability="原文件可用 · 演示资料"}).ToArray();
                 app.Backend.Workspaces.Add(new Workspace{Name="demo",ConfigPath=root+"/config/demo.yml",Roots=new(){new Root{Name="travel",Path=folder}}});
                 app.NewWindow();window=app.Windows.OfType<SearchWindow>().Single();window.EnableCloudLayoutFixture();window.MinWidth=1640;window.Width=1640;window.Height=800;
-                window.SeedResults(hits,new Dictionary<string,bool>{{folder,true}});window.SetResultQuery("海边 旅行");
+                var scope=new Dictionary<string,bool>{{folder,true}};window.SetResultQuery("海边 旅行");window.SeedResults(hits,scope);
                 CloudVerification.Descendants<TextBox>(window).Single(t=>AutomationProperties.GetName(t)=="搜索内容").Text="海边 旅行";window.VerificationSelect(0);
                 await Wait(()=>CloudVerification.Descendants<ImagePreviewView>(window.PreviewSurface).Any());
                 await Test("synthetic showcase renders three result views without issuing another search",async()=>
                 {
                     long requests=app.Backend.RequestCount;
-                    window.SetView(1);await Task.Delay(700);Screen("search-summary");
+                    await Task.WhenAll(hits.Select(hit=>ResultThumbnails.Get(hit,hit.ThumbnailQuery,prefs,CancellationToken.None)));
+                    window.SetView(1);await Wait(()=>CloudVerification.Descendants<Image>(window.ActiveListSurface).Count(image=>image.Source!=null)>=3);Screen("search-summary");
                     window.SetView(0);await Task.Delay(150);Screen("search-details");
-                    window.SetView(2);await Wait(()=>window.Waterfall.RealizedImages>=2);Screen("search-masonry");
-                    Check(app.Backend.RequestCount==requests&&window.DisplayedHits.Count==3,"Showcase changed search data or queried Soma");
+                    window.SetView(2);await Wait(()=>window.Waterfall.RealizedImages>=6);Screen("search-masonry");
+                    Check(app.Backend.RequestCount==requests&&window.DisplayedHits.Count==names.Length,"Showcase changed search data or queried Soma");
                 });
             }
             catch(Exception ex){failures++;tests.Add(new{name="fixture",passed=false,error=ex.ToString()});}

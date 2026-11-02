@@ -14,7 +14,7 @@ internal static class DesignVerification
     public static int Run(string[] args)
     {
         Environment.SetEnvironmentVariable("SOMAFINDER_TEST","1");var report=System.IO.Path.GetFullPath(args.Single(a=>a.StartsWith("--report="))[9..]);
-        var dir=System.IO.Path.GetDirectoryName(report)!;var root=System.IO.Path.Combine(dir,"design-fixture-"+Guid.NewGuid().ToString("N"));
+        var dir=System.IO.Path.GetDirectoryName(report)!;var root=System.IO.Path.Combine(Environment.GetEnvironmentVariable("RUNNER_TEMP")!,"SomaFinder-cloud-design-"+Guid.NewGuid().ToString("N"));CloudSandbox.Initialize(root);
         var store=new Store(System.IO.Path.Combine(root,"data"),System.IO.Path.Combine(root,"config"),System.IO.Path.Combine(root,"state"));
         var prefs=new Preferences{StartupSync=false,PeriodicSync=false,PauseUntil=DateTimeOffset.UtcNow.AddHours(3),BatteryStopsAuto=true};
         foreach(var pair in new[]{("alpha","C:/云端示例"),("beta","C:/另一个示例"),("same-a","C:/archive/资料"),("same-b","C:/backup/资料")})store.SaveWorkspace(new Workspace{Name=pair.Item1,ConfigPath=System.IO.Path.Combine(store.ConfigDirectory,pair.Item1+".yml"),Roots=new(){new(){Name="docs",Path=pair.Item2}}});
@@ -99,9 +99,10 @@ internal static class DesignVerification
         });
         Test("adjacent dividers conserve pair width and freeze the other two regions",()=>
         {
-            var pane=new SearchWindow(app,scope);windows.Add(pane);pane.Show();if(!pane.VerificationDetails.RightExpanded)pane.VerificationDetails.ToggleRight();Pump();
+            var pane=new SearchWindow(app,scope);windows.Add(pane);pane.EnableCloudLayoutFixture();pane.MinWidth=1800;pane.Width=1800;pane.Show();if(!pane.VerificationDetails.RightExpanded)pane.VerificationDetails.ToggleRight();Pump();
+            Check(pane.VerificationDetails.Mode==DetailMode.SideBySide,"Divider fixture must have four readable panes");
             var dividers=CloudVerification.Descendants<AdjacentDivider>(pane).OrderBy(Grid.GetColumn).ToArray();Check(dividers.Length==3,"Missing thin dividers");
-            for(int i=0;i<3;i++){dividers[i].RaiseEvent(new System.Windows.Controls.Primitives.DragStartedEventArgs(0,0));var before=pane.RegionWidths.ToArray();double delta=i==0?-12:12;dividers[i].Move(delta);Pump();var after=pane.RegionWidths.ToArray();Check(Math.Abs(after.Sum()-before.Sum())<.01,"Total changed");for(int j=0;j<4;j++)if(j!=i&&j!=i+1)Check(Math.Abs(after[j]-before[j])<.01,"Unrelated region changed");Check(Math.Abs(after[i]-before[i]-delta)<.01,"Adjacent pair did not exchange the permitted width");dividers[i].Move(-delta);}
+            for(int i=0;i<3;i++){Check(dividers[i].IsEnabled,"Divider fixture targeted a disabled divider");dividers[i].RaiseEvent(new System.Windows.Controls.Primitives.DragStartedEventArgs(0,0){RoutedEvent=System.Windows.Controls.Primitives.Thumb.DragStartedEvent});var before=pane.RegionWidths.ToArray();double delta=i==0?-12:12;dividers[i].Move(delta);Pump();var after=pane.RegionWidths.ToArray();Check(Math.Abs(after.Sum()-before.Sum())<.01,"Total changed");for(int j=0;j<4;j++)if(j!=i&&j!=i+1)Check(Math.Abs(after[j]-before[j])<.01,"Unrelated region changed");Check(Math.Abs(after[i]-before[i]-delta)<.01,"Adjacent pair did not exchange the permitted width");dividers[i].Move(-delta);Pump();}
             pane.Close();Pump();
         });
         Test("header sort markers persist after rebinding and repeated column clicks",()=>
