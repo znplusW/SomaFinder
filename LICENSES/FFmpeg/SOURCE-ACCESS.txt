@@ -1,0 +1,6 @@
+Matching unmodified FFmpeg/Jellyfin source, patches and build recipes:
+https://github.com/znplusW/SomaFinder/releases/download/v0.6.5/jellyfin-ffmpeg-v7.1.4-3-source.tar.gz
+SHA256: 38FFF90F73B3C4F9C3C7270711411A4EC3CBE63B205D4B4A5525BCC532D3D31F
+Upstream: https://github.com/jellyfin/jellyfin-ffmpeg/tree/v7.1.4-3
+Dependencies: dependency-sources.json and upstream builder/scripts.d (public source repositories with pinned revisions).
+Build instructions: upstream builder/README.md.

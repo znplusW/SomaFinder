@@ -1,0 +1,8 @@
+随包第三方许可
+
+.NET / Windows Desktop 10.0.14：DotNet.txt、WindowsDesktop.txt。
+.NET 运行时第三方声明：DotNet-ThirdParty.txt。
+YamlDotNet 16.3.0：YamlDotNet.txt，MIT，Antoine Aubry and contributors。
+YamlDotNet 许可来源：官方仓库提交 ae480660f4fb26f3eb0b41c1d1fcf21c0e9d9e73 的 LICENSE.txt。
+
+Soma 是用户单独提供的后端程序，本发行包不包含 Soma 程序、模型或索引数据库。

@@ -1,0 +1,345 @@
+{
+  "upstream": "https://github.com/jellyfin/jellyfin-ffmpeg/tree/v7.1.4-3",
+  "sourceArchive": "jellyfin-ffmpeg-v7.1.4-3-source.tar.gz",
+  "sha256": "38FFF90F73B3C4F9C3C7270711411A4EC3CBE63B205D4B4A5525BCC532D3D31F",
+  "description": "Pinned upstream dependency repositories/revisions; includes target-specific scripts not all used in Windows. Complete build scripts are in the source archive.",
+  "dependencies": [
+    {
+      "script": "builder/scripts.d/10-mingw-std-threads.sh",
+      "SCRIPT_REPO": "https://github.com/meganz/mingw-std-threads.git",
+      "SCRIPT_COMMIT": "c931bac289dd431f1dd30fc4a5d1a7be36668073"
+    },
+    {
+      "script": "builder/scripts.d/10-mingw.sh",
+      "SCRIPT_REPO": "https://github.com/mingw-w64/mingw-w64.git",
+      "SCRIPT_COMMIT": "2de6703961c0d519046b841f7b392a040e1e5b55"
+    },
+    {
+      "script": "builder/scripts.d/10-xorg-macros.sh",
+      "SCRIPT_REPO": "https://gitlab.freedesktop.org/xorg/util/macros.git",
+      "SCRIPT_COMMIT": "a9d71e3fd8e6758b70be31c586921bbbcd2a8449"
+    },
+    {
+      "script": "builder/scripts.d/20-libiconv.sh",
+      "SCRIPT_REPO": "https://skia.googlesource.com/third_party/libiconv",
+      "SCRIPT_COMMIT": "v1.18",
+      "SCRIPT_REPO2": "https://github.com/coreutils/gnulib.git",
+      "SCRIPT_COMMIT2": "e9c1d94f58eaacee919bb2015da490b980a5eedf"
+    },
+    {
+      "script": "builder/scripts.d/20-zlib.sh",
+      "SCRIPT_REPO": "https://github.com/madler/zlib.git",
+      "SCRIPT_COMMIT": "570720b0c24f9686c33f35a1b3165c1f568b96be"
+    },
+    {
+      "script": "builder/scripts.d/25-fftw3f.sh",
+      "SCRIPT_REPO": "https://github.com/FFTW/fftw3.git",
+      "SCRIPT_COMMIT": "7947c101a5b724fe8b9784218388b46d7e247132"
+    },
+    {
+      "script": "builder/scripts.d/25-freetype.sh",
+      "SCRIPT_REPO": "https://github.com/freetype/freetype.git",
+      "SCRIPT_COMMIT": "23b6cd27ff19b70cbf98e058cd2cf0647d5284ff"
+    },
+    {
+      "script": "builder/scripts.d/25-fribidi.sh",
+      "SCRIPT_REPO": "https://github.com/fribidi/fribidi.git",
+      "SCRIPT_COMMIT": "b28f43bd3e8e31a5967830f721bab218c1aa114c"
+    },
+    {
+      "script": "builder/scripts.d/25-gmp.sh",
+      "SCRIPT_REPO": "https://github.com/BtbN/gmplib.git",
+      "SCRIPT_COMMIT": "9994908f090c694f8a152d660dc6852e0c48557a"
+    },
+    {
+      "script": "builder/scripts.d/25-libogg.sh",
+      "SCRIPT_REPO": "https://github.com/xiph/ogg.git",
+      "SCRIPT_COMMIT": "0288fadac3ac62d453409dfc83e9c4ab617d2472"
+    },
+    {
+      "script": "builder/scripts.d/25-libxml2.sh",
+      "SCRIPT_REPO": "https://github.com/GNOME/libxml2.git",
+      "SCRIPT_COMMIT": "9827e6e44652555992e168609abf94e4237ca944"
+    },
+    {
+      "script": "builder/scripts.d/25-openssl.sh",
+      "SCRIPT_REPO": "https://github.com/openssl/openssl.git",
+      "SCRIPT_COMMIT": "openssl-3.4.3"
+    },
+    {
+      "script": "builder/scripts.d/25-xz.sh",
+      "SCRIPT_REPO": "https://github.com/tukaani-project/xz.git",
+      "SCRIPT_COMMIT": "v5.8.2"
+    },
+    {
+      "script": "builder/scripts.d/35-fontconfig.sh",
+      "SCRIPT_REPO": "https://gitlab.freedesktop.org/fontconfig/fontconfig.git",
+      "SCRIPT_COMMIT": "6d0a98982ec351c165c9224c8b7dbdfca3010e47"
+    },
+    {
+      "script": "builder/scripts.d/45-harfbuzz.sh",
+      "SCRIPT_REPO": "https://github.com/harfbuzz/harfbuzz.git",
+      "SCRIPT_COMMIT": "e9348cd76d38f72cf881cc860035403220ffbe0b"
+    },
+    {
+      "script": "builder/scripts.d/45-libne10.sh",
+      "SCRIPT_REPO": "https://github.com/gnattu/Ne10.git",
+      "SCRIPT_COMMIT": "502bbc4ab65fe83114d618363510fd4ffb7a8c46"
+    },
+    {
+      "script": "builder/scripts.d/45-libudfread.sh",
+      "SCRIPT_REPO": "https://code.videolan.org/videolan/libudfread.git",
+      "SCRIPT_COMMIT": "139a2194525f2745b98a98e4d8fa627d07440176"
+    },
+    {
+      "script": "builder/scripts.d/45-libunibreak.sh",
+      "SCRIPT_REPO": "https://github.com/adah1972/libunibreak.git",
+      "SCRIPT_COMMIT": "32dc4fabf20176aeaa63c4880cc53cc123e53261"
+    },
+    {
+      "script": "builder/scripts.d/45-libvorbis.sh",
+      "SCRIPT_REPO": "https://github.com/xiph/vorbis.git",
+      "SCRIPT_COMMIT": "2d79800b6751dddd4b8b4ad50832faa5ae2a00d9"
+    },
+    {
+      "script": "builder/scripts.d/45-opencl.sh",
+      "SCRIPT_REPO": "https://github.com/KhronosGroup/OpenCL-Headers.git",
+      "SCRIPT_COMMIT": "4c82e9cfaaad18c340f48af3cf5d09ff33e8c1b7",
+      "SCRIPT_REPO2": "https://github.com/KhronosGroup/OpenCL-ICD-Loader.git",
+      "SCRIPT_COMMIT2": "2cde5d09953a041786d1cfdcb1c08704a82cb904"
+    },
+    {
+      "script": "builder/scripts.d/45-x11/10-xcbproto.sh",
+      "SCRIPT_REPO": "https://gitlab.freedesktop.org/xorg/proto/xcbproto.git",
+      "SCRIPT_COMMIT": "283ead0904eb8c6350cef67dd638bb4a6b014c3a"
+    },
+    {
+      "script": "builder/scripts.d/45-x11/10-xproto.sh",
+      "SCRIPT_REPO": "https://gitlab.freedesktop.org/xorg/proto/xorgproto.git",
+      "SCRIPT_COMMIT": "c18d2bc22813793bba7f0e4e603c0104d7724802"
+    },
+    {
+      "script": "builder/scripts.d/45-x11/10-xtrans.sh",
+      "SCRIPT_REPO": "https://gitlab.freedesktop.org/xorg/lib/libxtrans.git",
+      "SCRIPT_COMMIT": "cf05ba4a10c90da2c63805a5375e983b174e28b0"
+    },
+    {
+      "script": "builder/scripts.d/45-x11/20-libxau.sh",
+      "SCRIPT_REPO": "https://gitlab.freedesktop.org/xorg/lib/libxau.git",
+      "SCRIPT_COMMIT": "962b015d498b1f186aea8e3b0b46fb9791831552"
+    },
+    {
+      "script": "builder/scripts.d/45-x11/30-libxcb.sh",
+      "SCRIPT_REPO": "https://gitlab.freedesktop.org/xorg/lib/libxcb.git",
+      "SCRIPT_COMMIT": "93ee2ac73c32dcb567259fb83c564a424cd9fef7"
+    },
+    {
+      "script": "builder/scripts.d/45-x11/40-libx11.sh",
+      "SCRIPT_REPO": "https://gitlab.freedesktop.org/xorg/lib/libx11.git",
+      "SCRIPT_COMMIT": "369c6a806554429798b531cbf4267d8c8fcf6ed1"
+    },
+    {
+      "script": "builder/scripts.d/45-x11/50-libxext.sh",
+      "SCRIPT_REPO": "https://gitlab.freedesktop.org/xorg/lib/libxext.git",
+      "SCRIPT_COMMIT": "5ce2a6127889834082147dbcdd47731b7986961b"
+    },
+    {
+      "script": "builder/scripts.d/45-x11/50-libxfixes.sh",
+      "SCRIPT_REPO": "https://gitlab.freedesktop.org/xorg/lib/libxfixes.git",
+      "SCRIPT_COMMIT": "70d5b0e37f8a759f3dbc218f22954347ceed094a"
+    },
+    {
+      "script": "builder/scripts.d/45-x11/50-libxi.sh",
+      "SCRIPT_REPO": "https://gitlab.freedesktop.org/xorg/lib/libxi.git",
+      "SCRIPT_COMMIT": "3c2d5aedd7708c75710b39268631762de904c304"
+    },
+    {
+      "script": "builder/scripts.d/45-x11/50-libxinerama.sh",
+      "SCRIPT_REPO": "https://gitlab.freedesktop.org/xorg/lib/libxinerama.git",
+      "SCRIPT_COMMIT": "cc22c2f60c3862482562955116d5455263b443dc"
+    },
+    {
+      "script": "builder/scripts.d/45-x11/50-libxrender.sh",
+      "SCRIPT_REPO": "https://gitlab.freedesktop.org/xorg/lib/libxrender.git",
+      "SCRIPT_COMMIT": "01c4bb5b30bbb09921ca4042da369a60a73faefa"
+    },
+    {
+      "script": "builder/scripts.d/45-x11/50-libxscrnsaver.sh",
+      "SCRIPT_REPO": "https://gitlab.freedesktop.org/xorg/lib/libxscrnsaver.git",
+      "SCRIPT_COMMIT": "60c957ba8a727d01b376da0142aef7e18aa86fe1"
+    },
+    {
+      "script": "builder/scripts.d/45-x11/50-libxxf86vm.sh",
+      "SCRIPT_REPO": "https://gitlab.freedesktop.org/xorg/lib/libxxf86vm.git",
+      "SCRIPT_COMMIT": "63134ba6acf046099fc112e08942ff6549f2286a"
+    },
+    {
+      "script": "builder/scripts.d/45-x11/60-libglvnd.sh",
+      "SCRIPT_REPO": "https://gitlab.freedesktop.org/glvnd/libglvnd.git",
+      "SCRIPT_COMMIT": "606f6627cf481ee6dcb32387edc010c502cdf38b"
+    },
+    {
+      "script": "builder/scripts.d/45-x11/60-libxcursor.sh",
+      "SCRIPT_REPO": "https://gitlab.freedesktop.org/xorg/lib/libxcursor.git",
+      "SCRIPT_COMMIT": "2197ca8cbb743d2fcc43c155396a724cad8f26f3"
+    },
+    {
+      "script": "builder/scripts.d/45-x11/60-libxrandr.sh",
+      "SCRIPT_REPO": "https://gitlab.freedesktop.org/xorg/lib/libxrandr.git",
+      "SCRIPT_COMMIT": "242fae8378b213f8e477bde1c4be2fb654201b3d"
+    },
+    {
+      "script": "builder/scripts.d/45-x11/60-libxv.sh",
+      "SCRIPT_REPO": "https://gitlab.freedesktop.org/xorg/lib/libxv.git",
+      "SCRIPT_COMMIT": "d709b8efab4e28b3ad324ca30acdb81a527f69a4"
+    },
+    {
+      "script": "builder/scripts.d/50-amf.sh",
+      "SCRIPT_REPO": "https://github.com/GPUOpen-LibrariesAndSDKs/AMF.git",
+      "SCRIPT_COMMIT": "afed28d37aca1938da2eedc50599bb3535a987ec"
+    },
+    {
+      "script": "builder/scripts.d/50-chromaprint.sh",
+      "SCRIPT_REPO": "https://github.com/acoustid/chromaprint.git",
+      "SCRIPT_COMMIT": "9b6a0c61ecbeab75271bab4aca651d8dff41c5d6"
+    },
+    {
+      "script": "builder/scripts.d/50-dav1d.sh",
+      "SCRIPT_REPO": "https://code.videolan.org/videolan/dav1d.git",
+      "SCRIPT_COMMIT": "a31e4bd75787c451301d66e888c76ada54544a0c"
+    },
+    {
+      "script": "builder/scripts.d/50-fdk-aac-stripped.sh",
+      "SCRIPT_REPO": "https://gitlab.freedesktop.org/wtaymans/fdk-aac-stripped.git",
+      "SCRIPT_COMMIT": "529b87452cd33d45e1d0a5066d20b64f10b38845"
+    },
+    {
+      "script": "builder/scripts.d/50-ffnvcodec.sh",
+      "SCRIPT_REPO": "https://github.com/FFmpeg/nv-codec-headers.git",
+      "SCRIPT_COMMIT": "451da99614412a7f9526ef301a5ee0c7a6f9ad76"
+    },
+    {
+      "script": "builder/scripts.d/50-libass.sh",
+      "SCRIPT_REPO": "https://github.com/libass/libass.git",
+      "SCRIPT_COMMIT": "cbb743215bad0fe202477e569fe8005545258ccd"
+    },
+    {
+      "script": "builder/scripts.d/50-libbluray.sh",
+      "SCRIPT_REPO": "https://code.videolan.org/videolan/libbluray.git",
+      "SCRIPT_COMMIT": "71c5324e78dc7a159cad67ea7967300db54ec21c"
+    },
+    {
+      "script": "builder/scripts.d/50-libmp3lame.sh",
+      "SCRIPT_REPO": "https://svn.code.sf.net/p/lame/svn/trunk/lame"
+    },
+    {
+      "script": "builder/scripts.d/50-libopus.sh",
+      "SCRIPT_REPO": "https://github.com/xiph/opus.git",
+      "SCRIPT_COMMIT": "59f13a3eb0eed3a56cf46bd68cc2f29f18d83ba2"
+    },
+    {
+      "script": "builder/scripts.d/50-libtheora.sh",
+      "SCRIPT_REPO": "https://github.com/xiph/theora.git",
+      "SCRIPT_COMMIT": "23161c4a63fd9f9d09b9e972f95def2d56c777af"
+    },
+    {
+      "script": "builder/scripts.d/50-libvpl.sh",
+      "SCRIPT_REPO": "https://github.com/intel/libvpl.git",
+      "SCRIPT_COMMIT": "778a66d6c6537f08eabb91955dbbf1bce3812894"
+    },
+    {
+      "script": "builder/scripts.d/50-libvpx.sh",
+      "SCRIPT_REPO": "https://chromium.googlesource.com/webm/libvpx",
+      "SCRIPT_COMMIT": "d5399cdd6abea1169a246f28c5ca9a50975d7ba9"
+    },
+    {
+      "script": "builder/scripts.d/50-libwebp.sh",
+      "SCRIPT_REPO": "https://chromium.googlesource.com/webm/libwebp",
+      "SCRIPT_COMMIT": "d52b9ee34d6bb8fb7a190fe359d8560cfc2afc91"
+    },
+    {
+      "script": "builder/scripts.d/50-mfx.sh",
+      "SCRIPT_REPO": "https://github.com/lu-zero/mfx_dispatch.git",
+      "SCRIPT_COMMIT": "f6aac4576826ed821c81231fdfb0d24047158e7d"
+    },
+    {
+      "script": "builder/scripts.d/50-openmpt.sh",
+      "SCRIPT_REPO": "https://source.openmpt.org/svn/openmpt/trunk/OpenMPT"
+    },
+    {
+      "script": "builder/scripts.d/50-rkmpp.sh",
+      "SCRIPT_REPO": "https://github.com/nyanmisaka/rk-mirrors.git",
+      "SCRIPT_COMMIT": "a9380ef333102ac318628f83b5f7a460d377749e"
+    },
+    {
+      "script": "builder/scripts.d/50-rkrga.sh",
+      "SCRIPT_REPO": "https://github.com/nyanmisaka/rk-mirrors.git",
+      "SCRIPT_COMMIT": "1d330cc28551943bed3380261a5a9c6fbd58ff53"
+    },
+    {
+      "script": "builder/scripts.d/50-srt.sh",
+      "SCRIPT_REPO": "https://github.com/Haivision/srt.git",
+      "SCRIPT_COMMIT": "72f0c6e0e9a186adec428a145f4e085412d96796"
+    },
+    {
+      "script": "builder/scripts.d/50-svtav1.sh",
+      "SCRIPT_REPO": "https://gitlab.com/AOMediaCodec/SVT-AV1.git",
+      "SCRIPT_COMMIT": "b33dcc56cc64fcb3b3569094af8ab1d0d81ab4c1"
+    },
+    {
+      "script": "builder/scripts.d/50-vaapi/30-libpciaccess.sh",
+      "SCRIPT_REPO": "https://gitlab.freedesktop.org/xorg/lib/libpciaccess.git",
+      "SCRIPT_COMMIT": "191dfe0707e2a93c08e4b3e99454b6146c5bfca2"
+    },
+    {
+      "script": "builder/scripts.d/50-vaapi/40-libdrm.sh",
+      "SCRIPT_REPO": "https://gitlab.freedesktop.org/mesa/drm.git",
+      "SCRIPT_COMMIT": "6bfcfc725fbe0ece0918535556d61ee567b1ffff"
+    },
+    {
+      "script": "builder/scripts.d/50-vaapi/50-libva.sh",
+      "SCRIPT_REPO": "https://github.com/intel/libva.git",
+      "SCRIPT_COMMIT": "dbf83dc3b1ce6bad46e1628aaf2da5ef731157b8"
+    },
+    {
+      "script": "builder/scripts.d/50-vulkan/45-vulkan.sh",
+      "SCRIPT_REPO": "https://github.com/KhronosGroup/Vulkan-Headers.git",
+      "SCRIPT_COMMIT": "v1.4.337"
+    },
+    {
+      "script": "builder/scripts.d/50-vulkan/50-shaderc.sh",
+      "SCRIPT_REPO": "https://github.com/google/shaderc.git",
+      "SCRIPT_COMMIT": "c4b0af6c3664cd8b33ffddf452514e02a173b4d6"
+    },
+    {
+      "script": "builder/scripts.d/50-vulkan/55-spirv-cross.sh",
+      "SCRIPT_REPO": "https://github.com/KhronosGroup/SPIRV-Cross.git",
+      "SCRIPT_COMMIT": "28184c1e138f18c330256eeb2f56b9f9fbc53921"
+    },
+    {
+      "script": "builder/scripts.d/50-vulkan/60-libplacebo.sh",
+      "SCRIPT_REPO": "https://code.videolan.org/videolan/libplacebo.git",
+      "SCRIPT_COMMIT": "3188549fba13bbdf3a5a98de2a38c2e71f04e21e"
+    },
+    {
+      "script": "builder/scripts.d/50-x264.sh",
+      "SCRIPT_REPO": "https://code.videolan.org/videolan/x264.git",
+      "SCRIPT_COMMIT": "0480cb05fa188d37ae87e8f4fd8f1aea3711f7ee"
+    },
+    {
+      "script": "builder/scripts.d/50-x265.sh",
+      "SCRIPT_REPO": "https://bitbucket.org/multicoreware/x265_git.git",
+      "SCRIPT_COMMIT": "fa2770934b8f3d88aa866c77f27cb63f69a9ed39"
+    },
+    {
+      "script": "builder/scripts.d/50-zimg.sh",
+      "SCRIPT_REPO": "https://github.com/sekrit-twc/zimg.git",
+      "SCRIPT_COMMIT": "df9c1472b9541d0e79c8d02dae37fdf12f189ec2"
+    },
+    {
+      "script": "builder/scripts.d/50-zvbi.sh",
+      "SCRIPT_REPO": "https://github.com/zapping-vbi/zvbi.git",
+      "SCRIPT_COMMIT": "41477c97c8edf7a01f1594b2a95b94f0117eed21"
+    }
+  ]
+}

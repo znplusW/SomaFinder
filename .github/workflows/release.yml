@@ -1,0 +1,53 @@
+name: Public Windows release candidate
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  candidate:
+    runs-on: windows-2025
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.403'
+      - name: Build self-contained portable package
+        id: build
+        shell: pwsh
+        run: ./构建.ps1
+      - name: Frontend core UI scheduling and backend-discovery regression
+        if: always() && steps.build.outcome == 'success'
+        shell: pwsh
+        run: ./ci/run-regression.ps1 -Scope full
+      - name: Detached windows and waterfall resize
+        if: always() && steps.build.outcome == 'success'
+        shell: pwsh
+        run: |
+          ./ci/run-interaction.ps1 -Mode floating-windows
+          ./ci/run-interaction.ps1 -Mode waterfall-resize
+      - name: Content thumbnails and media preview
+        if: always() && steps.build.outcome == 'success'
+        shell: pwsh
+        run: ./ci/run-waterfall.ps1
+      - name: Public notices and synthetic showcase
+        if: always() && steps.build.outcome == 'success'
+        shell: pwsh
+        run: ./ci/run-interaction.ps1 -Mode public-release
+      - name: Package validated release assets
+        if: success()
+        shell: pwsh
+        run: ./ci/package-public.ps1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: public-release-reports-${{ github.run_id }}
+          path: reports/
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: SomaFinder-public-release-${{ github.run_id }}
+          path: artifacts/release/
+          retention-days: 14

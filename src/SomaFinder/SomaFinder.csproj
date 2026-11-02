@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType><TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF><UseWindowsForms>true</UseWindowsForms><Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings><EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
+    <StartupObject>SomaFinder.Program</StartupObject><Version>0.6.5</Version>
+    <AssemblyName>SomaFinder</AssemblyName><RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <ApplicationManifest>app.manifest</ApplicationManifest><ApplicationIcon>Assets/SomaFinder.ico</ApplicationIcon><NoWarn>$(NoWarn);WPF0001</NoWarn>
+  </PropertyGroup>
+  <ItemGroup><PackageReference Include="YamlDotNet" Version="16.3.0" /></ItemGroup>
+  <ItemGroup><Compile Include="../TrayShared/TrayProtocol.cs" Link="TrayProtocol.cs"/></ItemGroup>
+</Project>

@@ -1,0 +1,20 @@
+Soma Finder 0.6.5 — Windows 11 x64
+
+先部署 Soma 后端，再使用 Soma Finder。
+测试适配：Soma 0.10.7 Windows x64。
+后端下载：https://github.com/AwesomeDog/soma/releases/tag/v0.10.7
+
+完整解压后打开 SomaFinder.exe，保留 Components。
+在设置中选择后端，添加索引目录；首次同步需要准备模型和工具。
+在搜索页勾选目录，输入关键词或自然语言，双击打开原文件。
+
+中英文安装、使用与升级指南：Documents/Guides。
+许可与商业授权：Documents/Licensing.txt；GPLv3 正文：Documents/LICENSE.txt。
+第三方许可：Documents/LICENSES；构建与验证摘要：Documents。
+Source：公开源代码快照，不包含私有 Git 历史或个人配置。
+
+升级前先从托盘退出旧版，将旧 data 目录复制到新版程序旁。
+后端程序、模型和已有索引继续使用原位置，升级不需要重建索引。
+
+English: deploy Soma 0.10.7 first. Extract the entire release folder, then open SomaFinder.exe.
+Installation: Documents/Guides/INSTALL.en.md. Usage: Documents/Guides/USAGE.en.md.

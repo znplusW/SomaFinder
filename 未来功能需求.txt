@@ -1,0 +1,5 @@
+Future ideas / 后续方向（不是当前已实现功能）
+
+- Summary translation / 摘要翻译：尚未提供，后续需评估本地模型或服务以及隐私和性能。
+- Broader physical-device acceptance / 更多实物设备验收：真实触屏、多显示器、外接盘、电源和驱动组合。
+- English application UI / 英文软件界面：当前仅文档提供中英文，软件界面仍为中文。

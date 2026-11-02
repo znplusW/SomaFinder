@@ -1,0 +1,16 @@
+name: 商业许可咨询 / Commercial licensing
+description: 申请商业授权的联系渠道 / Request a commercial licensing contact
+title: "[Licensing] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请简述预期用途；维护者将提供后续联系渠道。不要在公开 issue 中提交合同、凭据或其他保密内容。
+        Briefly describe your intended use; the maintainer will provide a follow-up contact channel. Do not post confidential material in a public issue.
+  - type: textarea
+    id: use-case
+    attributes:
+      label: 预期用途 / Intended use
+      description: 例如桌面产品集成或闭源再分发 / For example, desktop integration or closed-source redistribution
+    validations:
+      required: true

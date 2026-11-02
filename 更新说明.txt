@@ -1,0 +1,9 @@
+Soma Finder 0.6.5 — 首个公开发行版 / First public release
+
+新增中英文产品简介、精简功能说明和完整安装指南。
+明确先部署 Soma 后端；测试适配版本为 Soma 0.10.7 Windows x64。
+原创代码采用 GPLv3，另提供单独协商的商业许可；关于页增加许可入口。
+公开源码、依赖说明、构建校验与发行目录已整理。
+包含瀑布流换列稳定性修复，以及独立摘要／预览窗口的显示层级修复。
+
+See Source/CHANGELOG.md for English release notes and Documents for licensing and verification.

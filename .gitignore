@@ -1,0 +1,15 @@
+**/bin/
+**/obj/
+artifacts/
+dist/
+data/
+reports/
+.vs/
+*.user
+*.log
+*.sqlite
+*.sqlite3
+*.db
+*.gguf
+.env
+.env.*
