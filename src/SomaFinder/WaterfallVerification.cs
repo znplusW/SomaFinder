@@ -120,9 +120,18 @@ internal static class WaterfallVerification
                 });
                 await Test("background decoding keeps dispatcher responsive and obeys worker and memory cache bounds",async()=>
                 {
-                    int ticks=0;double maxGap=0;var sw=Stopwatch.StartNew();double prior=0;var timer=new DispatcherTimer{Interval=TimeSpan.FromMilliseconds(25)};timer.Tick+=(_,_)=>{double now=sw.Elapsed.TotalMilliseconds;maxGap=Math.Max(maxGap,now-prior);prior=now;ticks++;};timer.Start();
-                    try{await Task.WhenAll(Enumerable.Range(0,8).Select(i=>Thumb(Hit("pages.pdf","distinct evidence about emerald sea lighthouse"),"parallel request "+i)));}finally{timer.Stop();}
-                    timings.Add(new{scenario="8 uncached PDF previews",elapsedMs=sw.ElapsedMilliseconds,ticks,maxDispatcherGapMs=maxGap,peakWorkers=ResultThumbnails.PeakWorkers,cacheBytes=ResultThumbnails.CacheBytes});
+                    int ticks=0,inputTicks=0;double maxGap=0,maxInputLatency=0,maxBackgroundGap=0;var sw=Stopwatch.StartNew();double prior=0;var timer=new DispatcherTimer{Interval=TimeSpan.FromMilliseconds(25)};timer.Tick+=(_,_)=>{double now=sw.Elapsed.TotalMilliseconds;maxGap=Math.Max(maxGap,now-prior);prior=now;ticks++;};
+                    var operations=new Dictionary<DispatcherOperation,(double Started,string Callback)>();var slowOperations=new List<object>();
+                    var callbackField=typeof(DispatcherOperation).GetFields(System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).FirstOrDefault(f=>typeof(Delegate).IsAssignableFrom(f.FieldType));
+                    DispatcherHookEventHandler started=(_,e)=>{var callback=callbackField?.GetValue(e.Operation) as Delegate;operations[e.Operation]=(sw.Elapsed.TotalMilliseconds,callback==null?e.Operation.ToString()!:callback.Method.DeclaringType?.FullName+"."+callback.Method.Name);};
+                    DispatcherHookEventHandler ended=(_,e)=>{if(operations.Remove(e.Operation,out var item)){double ms=sw.Elapsed.TotalMilliseconds-item.Started;if(ms>80)slowOperations.Add(new{ms,priority=e.Operation.Priority.ToString(),callback=item.Callback});}};
+                    app.Dispatcher.Hooks.OperationStarted+=started;app.Dispatcher.Hooks.OperationCompleted+=ended;
+                    using var probeStop=new CancellationTokenSource();
+                    var background=Task.Run(async()=>{double last=sw.Elapsed.TotalMilliseconds;try{while(!probeStop.IsCancellationRequested){await Task.Delay(25,probeStop.Token);double now=sw.Elapsed.TotalMilliseconds;maxBackgroundGap=Math.Max(maxBackgroundGap,now-last);last=now;double posted=now;await app.Dispatcher.InvokeAsync(()=>{maxInputLatency=Math.Max(maxInputLatency,sw.Elapsed.TotalMilliseconds-posted);inputTicks++;},DispatcherPriority.Input,probeStop.Token);}}catch(OperationCanceledException){}});
+                    var pauseBefore=GC.GetTotalPauseDuration();timer.Start();
+                    try{await Task.WhenAll(Enumerable.Range(0,8).Select(i=>Thumb(Hit("pages.pdf","distinct evidence about emerald sea lighthouse"),"parallel request "+i)));}
+                    finally{timer.Stop();probeStop.Cancel();await background;app.Dispatcher.Hooks.OperationStarted-=started;app.Dispatcher.Hooks.OperationCompleted-=ended;}
+                    timings.Add(new{scenario="8 uncached PDF previews",elapsedMs=sw.ElapsedMilliseconds,ticks,maxDispatcherGapMs=maxGap,inputTicks,maxInputLatencyMs=maxInputLatency,maxBackgroundGapMs=maxBackgroundGap,gcPauseMs=(GC.GetTotalPauseDuration()-pauseBefore).TotalMilliseconds,slowOperations,peakWorkers=ResultThumbnails.PeakWorkers,cacheBytes=ResultThumbnails.CacheBytes});
                     Check(ticks>=10&&maxGap<750,"UI dispatcher stalled during decoding: "+maxGap);Check(ResultThumbnails.PeakWorkers<=2&&ResultThumbnails.ActiveWorkers==0,"Unbounded or leaked workers");Check(ResultThumbnails.CacheBytes<=48*1024*1024,"Thumbnail cache budget exceeded");
                 });
                 // This fixture uses genuine published workers and decoders, synthetic source files,

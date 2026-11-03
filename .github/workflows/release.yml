@@ -1,5 +1,12 @@
 name: Public Windows release candidate
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      scope:
+        type: choice
+        description: Full release or media-only diagnosis
+        options: [full, media]
+        default: full
 permissions:
   contents: read
 jobs:
@@ -18,11 +25,11 @@ jobs:
         shell: pwsh
         run: ./构建.ps1
       - name: Frontend core UI scheduling and backend-discovery regression
-        if: always() && steps.build.outcome == 'success'
+        if: always() && steps.build.outcome == 'success' && inputs.scope != 'media'
         shell: pwsh
         run: ./ci/run-regression.ps1 -Scope full
       - name: Detached windows and waterfall resize
-        if: always() && steps.build.outcome == 'success'
+        if: always() && steps.build.outcome == 'success' && inputs.scope != 'media'
         shell: pwsh
         run: |
           ./ci/run-interaction.ps1 -Mode floating-windows
@@ -32,11 +39,11 @@ jobs:
         shell: pwsh
         run: ./ci/run-waterfall.ps1
       - name: Public notices and synthetic showcase
-        if: always() && steps.build.outcome == 'success'
+        if: always() && steps.build.outcome == 'success' && inputs.scope != 'media'
         shell: pwsh
         run: ./ci/run-interaction.ps1 -Mode public-release
       - name: Package validated release assets
-        if: success()
+        if: success() && inputs.scope != 'media'
         shell: pwsh
         run: ./ci/package-public.ps1
       - uses: actions/upload-artifact@v4
@@ -46,7 +53,7 @@ jobs:
           path: reports/
           retention-days: 14
       - uses: actions/upload-artifact@v4
-        if: success()
+        if: success() && inputs.scope != 'media'
         with:
           name: SomaFinder-public-release-${{ github.run_id }}
           path: artifacts/release/
