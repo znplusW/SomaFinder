@@ -10,5 +10,6 @@ First public distribution of Soma Finder / 首个公开发行版。
 - Clean source snapshot and public history; portable packaging, checksum and cloud verification provenance.
 - Includes existing natural-language search, keyword fallback, root/type filters, three result views, previews, touch controls, multi-window/tray and indexing policies.
 - Includes fixes for waterfall reflow flicker and detached summary/preview windows being covered by their parent.
+- Keeps preview process startup, monitoring and response parsing off the UI thread to improve cold-start responsiveness / 缩略图子进程启动、监控和结果解析移出界面线程。
 
 Public-source and release material changes do not modify the Soma backend or migrate/clear existing indexes.

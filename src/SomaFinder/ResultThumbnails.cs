@@ -75,13 +75,20 @@ internal static class ResultThumbnails
         if(reply.Png is {Length:>0}){using var input=new MemoryStream(reply.Png);var decoded=new BitmapImage();decoded.BeginInit();decoded.CacheOption=BitmapCacheOption.OnLoad;decoded.StreamSource=input;decoded.EndInit();if(decoded.PixelWidth>8192||decoded.PixelHeight>8192)throw new IOException();decoded.Freeze();image=decoded;}
         return new(image,reply.Caption,reply.Text,reply.Page,reply.Seconds,reply.VerifiedTime,reply.Note);
     }
-    internal static async Task<ThumbnailReply> Worker(ThumbnailRequest request,CancellationToken cancel,int timeoutMs=10000)
+    // Native process creation and response parsing can be slow on a cold system.
+    // Keep the whole worker lifetime off the caller's WPF synchronization context;
+    // Get still resumes on the UI context when publishing the frozen bitmap.
+    internal static Task<ThumbnailReply> Worker(ThumbnailRequest request,CancellationToken cancel,int timeoutMs=10000)
+        =>Task.Run(()=>WorkerCore(request,cancel,timeoutMs));
+    static async Task<ThumbnailReply> WorkerCore(ThumbnailRequest request,CancellationToken cancel,int timeoutMs)
     {
+        cancel.ThrowIfCancellationRequested();
         var psi=new ProcessStartInfo(Environment.ProcessPath!){UseShellExecute=false,CreateNoWindow=true,RedirectStandardOutput=true,RedirectStandardError=true,WorkingDirectory=AppContext.BaseDirectory};
         psi.ArgumentList.Add("--thumbnail-worker");psi.Environment["SOMA_FINDER_THUMBNAIL"]=Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(request)));
         using var deadline=CancellationTokenSource.CreateLinkedTokenSource(cancel);deadline.CancelAfter(timeoutMs);
         var started=ManagedProcess.Start(psi);using var process=started.Process;
-        int active=Interlocked.Increment(ref ActiveWorkers);Interlocked.Increment(ref WorkerStarts);PeakWorkers=Math.Max(PeakWorkers,active);
+        int active=Interlocked.Increment(ref ActiveWorkers);Interlocked.Increment(ref WorkerStarts);
+        int prior;do{prior=Volatile.Read(ref PeakWorkers);if(active<=prior)break;}while(Interlocked.CompareExchange(ref PeakWorkers,active,prior)!=prior);
         try
         {
             try{process.PriorityClass=ProcessPriorityClass.BelowNormal;}catch{}

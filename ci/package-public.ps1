@@ -12,7 +12,7 @@ foreach($name in @('full-regression','current-ui','design-ui','scheduling','back
     $report=Get-Content -LiteralPath (Join-Path $reports ($name+'.json')) -Raw|ConvertFrom-Json
     if($report.failures -ne 0){throw ('Failed check: '+$name)}
     if($report.commit -and $report.commit -ne $env:GITHUB_SHA){throw 'Mixed test commits'}
-    $count=if($report.tests){@($report.tests).Count}else{0}
+    $count=if($report.tests){@($report.tests|Where-Object {$_.passed -eq $true -or $_.status -eq 'passed'}).Count}else{0}
     $results+=@{name=$name;passed=$true;checks=$count}
 }
 foreach($file in @('SomaFinder.exe','Components/SomaFinder.TrayHost.exe')){
@@ -39,7 +39,7 @@ if(@(Compare-Object $expected @(Get-ChildItem -LiteralPath $stage -File|Select-O
 $proof=@{version=$Version;commit=$env:GITHUB_SHA;repository=$env:GITHUB_REPOSITORY;run=$env:GITHUB_RUN_ID;runUrl=('https://github.com/'+$env:GITHUB_REPOSITORY+'/actions/runs/'+$env:GITHUB_RUN_ID);environment='GitHub hosted Windows Server 2025 x64';checks=$results;localApplicationTested=$false;physicalHardwareTested=$false;syntheticScreenshots=$true;testedSomaVersion='0.10.7 (existing compatibility; backend/model integration not rerun in this workflow)';sourceArchive=[IO.Path]::GetFileName($sourceZip);binarySHA256=(Get-FileHash -LiteralPath (Join-Path $stage 'SomaFinder.exe')).Hash;signature=(Get-AuthenticodeSignature -LiteralPath (Join-Path $stage 'SomaFinder.exe')).Status.ToString();license='GPL-3.0-only; separate commercial agreement available'}
 $proof|ConvertTo-Json -Depth 7|Set-Content -LiteralPath (Join-Path $stage 'Documents/build-provenance.json') -Encoding utf8
 $proof|ConvertTo-Json -Depth 7|Set-Content -LiteralPath (Join-Path $release ('SomaFinder-'+$Version+'-build-provenance.json')) -Encoding utf8
-$summary="Soma Finder $Version public release candidate`nCommit: $env:GITHUB_SHA`nChecks: $(($results|Measure-Object -Property checks -Sum).Sum) assertions in $($results.Count) groups; all selected checks passed.`nScope: frontend/package/media preview; not full Soma/model/VHD/physical-hardware integration.`nBackend compatibility: Soma 0.10.7.`nSee build-provenance.json and the public workflow for exact scope.`n"
+$summary="Soma Finder $Version public release candidate`nCommit: $env:GITHUB_SHA`nChecks: $(($results|Measure-Object -Property checks -Sum).Sum) passed cases in $($results.Count) groups; all selected checks passed.`nScope: frontend/package/media preview; not full Soma/model/VHD/physical-hardware integration.`nBackend compatibility: Soma 0.10.7.`nSee build-provenance.json and the public workflow for exact scope.`n"
 [IO.File]::WriteAllText((Join-Path $stage 'Documents/测试报告.txt'),$summary,[Text.UTF8Encoding]::new($false))
 $manifest=@(Get-ChildItem -LiteralPath $stage -File -Recurse -Force|ForEach-Object {[pscustomobject]@{Path=[IO.Path]::GetRelativePath($stage,$_.FullName).Replace('\','/');Bytes=$_.Length;SHA256=(Get-FileHash -LiteralPath $_.FullName).Hash}})
 $manifest|Export-Csv -LiteralPath (Join-Path $stage 'Documents/sha256.csv') -NoTypeInformation -Encoding utf8
