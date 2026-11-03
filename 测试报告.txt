@@ -1,4 +1,4 @@
-Soma Finder 0.6.5 public release verification
+Soma Finder 0.6.6 public release verification
 
 The release workflow writes the actual commit-bound test result and package hashes to Documents/build-provenance.json.
 See https://github.com/znplusW/SomaFinder/actions/workflows/release.yml and Source/docs/VALIDATION.md.

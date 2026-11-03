@@ -1,9 +1,11 @@
-Soma Finder 0.6.5 — 首个公开发行版 / First public release
+Soma Finder 0.6.6 — 图片方向修复 / Image orientation fix
 
-新增中英文产品简介、精简功能说明和完整安装指南。
-明确先部署 Soma 后端；测试适配版本为 Soma 0.10.7 Windows x64。
-原创代码采用 GPLv3，另提供单独协商的商业许可；关于页增加许可入口。
-公开源码、依赖说明、构建校验与发行目录已整理。
-包含瀑布流换列稳定性修复，以及独立摘要／预览窗口的显示层级修复。
+修复图片内容预览忽略 EXIF 方向标记，导致部分照片旋转或镜像方向不正确的问题。
+首次预览、放大后高清加载及图片缩略图统一处理方向，并按纠正后的宽高显示。
+增加 8 种 EXIF 方向的合成 JPEG 像素、缩略图和高清升级等针对性检查。
+完整发行包包含托盘、媒体组件、源码与许可文件。
+升级前从托盘退出旧版；完整解压新版，将旧版 data 文件夹复制到新版主程序旁。
+继续使用已有 Soma 后端和索引；无需重建索引，不修改原图片。
+测试适配后端仍为 Soma 0.10.7 Windows x64。
 
 See Source/CHANGELOG.md for English release notes and Documents for licensing and verification.

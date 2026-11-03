@@ -45,28 +45,15 @@ internal sealed class ImagePreviewView : DockPanel
         var loaded=await Task.Run(()=>
         {
             if(!mayRead())throw new IOException("文件所在磁盘已离线或发生变化。");
-            int width,height;
-            using(var stream=OpenImage(path))
-            {
-                var decoder=BitmapDecoder.Create(stream,BitmapCreateOptions.DelayCreation,BitmapCacheOption.None);
-                width=decoder.Frames[0].PixelWidth;height=decoder.Frames[0].PixelHeight;
-            }
-            var size=DecodeSize(width,height,1200,1_440_000);
-            return (Bitmap:Decode(path,size),Width:width,Height:height);
+            return OrientedImage.Load(path,1200,1_440_000);
         });
         return new ImagePreviewView(loaded.Bitmap,loaded.Width,loaded.Height,path,mayRead);
     }
-    static FileStream OpenImage(string path)=>new(path,FileMode.Open,FileAccess.Read,FileShare.ReadWrite|FileShare.Delete);
     internal static (int Width,int Height) DecodeSize(int width,int height,int maxSide=4096,int maxPixels=8_000_000)
     {
         if(width<=0||height<=0)throw new FileFormatException("图片尺寸无效。");
         double ratio=Math.Min(1,Math.Min((double)maxSide/Math.Max(width,height),Math.Sqrt((double)maxPixels/width/height)));
         return (Math.Max(1,(int)(width*ratio)),Math.Max(1,(int)(height*ratio)));
-    }
-    static BitmapImage Decode(string path,(int Width,int Height) size)
-    {
-        using var stream=OpenImage(path);var bitmap=new BitmapImage();bitmap.BeginInit();bitmap.CacheOption=BitmapCacheOption.OnLoad;
-        bitmap.DecodePixelWidth=size.Width;bitmap.DecodePixelHeight=size.Height;bitmap.StreamSource=stream;bitmap.EndInit();bitmap.Freeze();return bitmap;
     }
     async void RequestQuality()
     {
@@ -80,7 +67,7 @@ internal sealed class ImagePreviewView : DockPanel
             {
                 if(mayRead?.Invoke()==false)throw new IOException("图片目录已不可用。");
                 var info=new FileInfo(path);if(info.Length!=fileSize||info.LastWriteTimeUtc!=modified)throw new IOException("图片已更改，请重新选择。");
-                return Decode(path,size);
+                return OrientedImage.Load(path).Bitmap;
             });
             if(IsLoaded)image.Source=sharper;else qualityRequested=false;
         }

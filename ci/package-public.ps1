@@ -1,4 +1,4 @@
-param([string]$Version='0.6.5')
+param([string]$Version='0.6.6')
 $ErrorActionPreference='Stop'
 if($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ENVIRONMENT -ne 'github-hosted' -or $env:RUNNER_OS -ne 'Windows'){throw 'Hosted Windows only'}
 $root=Split-Path $PSScriptRoot -Parent
@@ -8,7 +8,7 @@ $stage=Join-Path $root ('artifacts/stage/SomaFinder-'+$Version+'-win-x64')
 if(Test-Path -LiteralPath $stage){throw 'Use a fresh release staging directory'}
 New-Item -ItemType Directory -Path $stage,$release -Force|Out-Null
 $reports=Join-Path $root 'reports';$results=@()
-foreach($name in @('full-regression','current-ui','design-ui','scheduling','backend-discovery','floating-windows','waterfall-resize','waterfall','public-release')){
+foreach($name in @('full-regression','current-ui','design-ui','scheduling','backend-discovery','floating-windows','waterfall-resize','waterfall','image-preview','public-release')){
     $report=Get-Content -LiteralPath (Join-Path $reports ($name+'.json')) -Raw|ConvertFrom-Json
     if($report.failures -ne 0){throw ('Failed check: '+$name)}
     if($report.commit -and $report.commit -ne $env:GITHUB_SHA){throw 'Mixed test commits'}

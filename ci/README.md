@@ -1,6 +1,6 @@
 # Cloud verification
 
-`release.yml` builds a self-contained Windows x64 candidate, runs the frontend regression and published-binary checks, and prepares release assets only after the selected checks pass. It is manually dispatched; it never publishes a release automatically.
+`release.yml` builds a self-contained Windows x64 candidate, runs the frontend regression and published-binary checks, and prepares release assets only after the selected checks pass. It runs by manual dispatch or on a `candidate/**` branch push; it never publishes a release automatically. Full candidates include the EXIF orientation and image-preview interaction checks.
 
 Tests use GitHub-hosted Windows with isolated/synthetic data. Never run UI, backend or index fixtures on a user's machine by default. Never point a rebuild test at personal data. See [validation scope](../docs/VALIDATION.md).
 

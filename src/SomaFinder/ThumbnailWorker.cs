@@ -37,9 +37,7 @@ internal static class ThumbnailWorker
         if(Rules.TypeMatches(type,"视频"))return VideoThumbnail.Read(r);
         if(Rules.TypeMatches(type,"图片"))
         {
-            using var input=new FileStream(r.Path,FileMode.Open,FileAccess.Read,FileShare.ReadWrite|FileShare.Delete);
-            var header=BitmapDecoder.Create(input,BitmapCreateOptions.DelayCreation,BitmapCacheOption.None).Frames[0];var size=ImagePreviewView.DecodeSize(header.PixelWidth,header.PixelHeight,r.Edge,r.Edge*r.Edge);input.Position=0;
-            var bitmap=new BitmapImage();bitmap.BeginInit();bitmap.CacheOption=BitmapCacheOption.OnLoad;bitmap.DecodePixelWidth=size.Width;bitmap.DecodePixelHeight=size.Height;bitmap.StreamSource=input;bitmap.EndInit();
+            var bitmap=OrientedImage.Load(r.Path,r.Edge,r.Edge*r.Edge).Bitmap;
             if(bitmap.PixelHeight>8192||bitmap.PixelWidth>8192)throw new IOException();return new(Png(bitmap),"");
         }
         if(new[]{".docx",".pptx",".xlsx",".odt",".odp",".ods"}.Contains(type)&&file.Length<=128*1024*1024)return Office(r,type);

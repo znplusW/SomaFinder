@@ -5,7 +5,7 @@
 [English](README.en.md) · [下载绿色版](https://github.com/znplusW/SomaFinder/releases/latest) · [安装指南](docs/INSTALL.zh-CN.md) · [许可与商业授权](docs/LICENSING.md)
 
 ![Windows 11 x64](https://img.shields.io/badge/Windows_11-x64-0078D4)
-![Version](https://img.shields.io/badge/version-0.6.5-178E8B)
+![Version](https://img.shields.io/badge/version-0.6.6-178E8B)
 ![Soma](https://img.shields.io/badge/tested_Soma-0.10.7-555555)
 ![License](https://img.shields.io/badge/license-GPLv3_%2F_Commercial-blue)
 
@@ -30,7 +30,7 @@ Soma Finder 是面向 **Windows 11 x64** 的本地文件搜索桌面前端。它
 ## 三步开始
 
 1. [部署 Soma 0.10.7 并准备模型](docs/INSTALL.zh-CN.md#1-先部署-soma-后端)。
-2. 从 [Releases](https://github.com/znplusW/SomaFinder/releases/latest) 下载 `SomaFinder-0.6.5-win-x64.zip`，完整解压后打开 `SomaFinder.exe`。
+2. 从 [Releases](https://github.com/znplusW/SomaFinder/releases/latest) 下载 `SomaFinder-0.6.6-win-x64.zip`，完整解压后打开 `SomaFinder.exe`。
 3. 在设置中选择 Soma 后端、添加索引目录，等待索引就绪，再输入你想找的内容。
 
 例如：“关于电池续航的测试报告”“海边旅行的照片”“解释接口认证流程的文档”。语义结果取决于 Soma 模型、文件内容及索引完成情况。

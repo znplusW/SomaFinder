@@ -1,0 +1,32 @@
+name: Image orientation targeted checks
+on:
+  workflow_dispatch:
+  push:
+    branches: [fix/image-orientation-20261103]
+permissions:
+  contents: read
+jobs:
+  orientation:
+    runs-on: windows-2025
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.403'
+      - name: Publish affected WPF application and image worker
+        shell: pwsh
+        run: dotnet publish src/SomaFinder/SomaFinder.csproj -c Release --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None -p:DebugSymbols=false -o artifacts/portable
+      - name: Image decoding orientation and preview interaction checks
+        shell: pwsh
+        run: ./ci/run-interaction.ps1 -Mode image-preview
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: image-orientation-reports-${{ github.run_id }}
+          path: reports/
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: image-orientation-candidate-${{ github.run_id }}
+          path: artifacts/portable/

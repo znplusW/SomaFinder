@@ -33,6 +33,52 @@ internal static class ImagePreviewVerification
             VirtualTouch? first=null,second=null;
             try
             {
+                await Test("EXIF orientations 1 through 8 normalize preview and worker thumbnail pixels",async()=>
+                {
+                    Directory.CreateDirectory(root);
+                    var colors=new[]{Colors.Red,Colors.Lime,Colors.Blue,Colors.Yellow};
+                    var pixels=new byte[2400*1600*3];
+                    for(int y=0;y<1600;y++)for(int x=0;x<2400;x++)
+                    {var color=colors[(y>=800?2:0)+(x>=1200?1:0)];int at=(y*2400+x)*3;pixels[at]=color.B;pixels[at+1]=color.G;pixels[at+2]=color.R;}
+                    var source=BitmapSource.Create(2400,1600,96,96,PixelFormats.Bgr24,null,pixels,2400*3);
+                    var encoder=new JpegBitmapEncoder{QualityLevel=95};encoder.Frames.Add(BitmapFrame.Create(source));using var jpeg=new MemoryStream();encoder.Save(jpeg);var encoded=jpeg.ToArray();
+                    var corners=new[]{new[]{0,1,2,3},new[]{1,0,3,2},new[]{3,2,1,0},new[]{2,3,0,1},new[]{0,2,1,3},new[]{2,0,3,1},new[]{3,1,2,0},new[]{1,3,0,2}};
+                    void VerifyPixels(BitmapSource image,int orientation)
+                    {
+                        var rgb=new FormatConvertedBitmap(image,PixelFormats.Bgr32,null,0);
+                        for(int i=0;i<4;i++)
+                        {
+                            int x=image.PixelWidth*(i%2==0?1:3)/4,y=image.PixelHeight*(i<2?1:3)/4;var sample=new byte[4];rgb.CopyPixels(new Int32Rect(x,y,1,1),sample,4,0);
+                            var expected=colors[corners[orientation-1][i]];
+                            Check(Math.Abs(sample[0]-expected.B)<20&&Math.Abs(sample[1]-expected.G)<20&&Math.Abs(sample[2]-expected.R)<20,$"Orientation {orientation}, corner {i} incorrect");
+                        }
+                    }
+                    for(int orientation=1;orientation<=8;orientation++)
+                    {
+                        // Inject a minimal EXIF IFD into real JPEG bytes; no encoder auto-rotation.
+                        var exif=new byte[]{255,225,0,34,69,120,105,102,0,0,73,73,42,0,8,0,0,0,1,0,18,1,3,0,1,0,0,0,(byte)orientation,0,0,0,0,0,0,0};
+                        string file=Path.Combine(root,$"orientation-{orientation}.jpg");using(var output=File.Create(file)){output.Write(encoded,0,2);output.Write(exif);output.Write(encoded,2,encoded.Length-2);}
+                        var real=await ImagePreviewView.LoadAsync(file,()=>true);host.Content=real;await Task.Delay(30);
+                        bool swapped=orientation>=5;Check(real.Bitmap.PixelWidth==(swapped?800:1200)&&real.Bitmap.PixelHeight==(swapped?1200:800),"Incorrect oriented initial dimensions");
+                        var bounds=real.ImageBounds;Check(Math.Abs(bounds.Width/bounds.Height-(swapped?2d/3:1.5))<.001,"Preview layout did not use oriented dimensions");VerifyPixels(real.Bitmap,orientation);
+                        var reply=await ResultThumbnails.Worker(new ThumbnailRequest(file,"","","lexical",null),CancellationToken.None);
+                        Check(reply.Png is {Length:>0},"Worker returned no image");using(var png=new MemoryStream(reply.Png!)){var thumbnail=BitmapDecoder.Create(png,BitmapCreateOptions.None,BitmapCacheOption.OnLoad).Frames[0];VerifyPixels(thumbnail,orientation);Check(Math.Max(thumbnail.PixelWidth,thumbnail.PixelHeight)<=640,"Thumbnail exceeded decode cap");}
+                        if(orientation==6)
+                        {
+                            var target=real.TouchSurface;var center=new Point(target.ActualWidth/2,target.ActualHeight/2);var presentation=PresentationSource.FromVisual(target);var a=new VirtualTouch(721,target,presentation);var b=new VirtualTouch(722,target,presentation);
+                            try
+                            {
+                                a.Down(center+new Vector(-50,0));b.Down(center+new Vector(50,0));b.Move(center+new Vector(150,0));var timer=Stopwatch.StartNew();while(real.Bitmap.PixelHeight<=1200&&timer.Elapsed<TimeSpan.FromSeconds(10))await Task.Delay(50);
+                                Check(real.Bitmap.PixelWidth==1600&&real.Bitmap.PixelHeight==2400,"Quality upgrade lost orientation or dimensions");VerifyPixels(real.Bitmap,orientation);real.Fit();Screenshot(real,"image-exif-clockwise.png");
+                            }
+                            finally{a.Up();b.Up();}
+                        }
+                        using var exclusive=new FileStream(file,FileMode.Open,FileAccess.ReadWrite,FileShare.None);Check(exclusive.Length>0,"Oriented decode retained file handle");
+                    }
+                    string untagged=Path.Combine(root,"untagged.jpg");File.WriteAllBytes(untagged,encoded);VerifyPixels(OrientedImage.Load(untagged).Bitmap,1);
+                    string invalid=Path.Combine(root,"invalid-orientation.jpg");var invalidBytes=File.ReadAllBytes(Path.Combine(root,"orientation-1.jpg"));invalidBytes[30]=9;File.WriteAllBytes(invalid,invalidBytes);VerifyPixels(OrientedImage.Load(invalid).Bitmap,1);
+                });
+                host.Content=view;await Task.Delay(40);
                 await Test("initial image fits viewport with bounds",()=>
                 {
                     Check(view.ZoomFactor==1,"New image did not start at fit");var b=view.ImageBounds;

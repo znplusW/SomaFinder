@@ -1,5 +1,7 @@
 name: Public Windows release candidate
 on:
+  push:
+    branches: ['candidate/**']
   workflow_dispatch:
     inputs:
       scope:
@@ -38,6 +40,10 @@ jobs:
         if: always() && steps.build.outcome == 'success'
         shell: pwsh
         run: ./ci/run-waterfall.ps1
+      - name: EXIF image orientation and preview interaction
+        if: always() && steps.build.outcome == 'success' && inputs.scope != 'media'
+        shell: pwsh
+        run: ./ci/run-interaction.ps1 -Mode image-preview
       - name: Public notices and synthetic showcase
         if: always() && steps.build.outcome == 'success' && inputs.scope != 'media'
         shell: pwsh

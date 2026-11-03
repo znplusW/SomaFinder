@@ -100,7 +100,7 @@ public sealed class SettingsWindow : Window
         general.Children.Add(Row(UI.Text("默认搜索广度"),defaultSearchBreadth));
         general.Children.Add(Row(UI.Text("新建搜索窗口默认显示"),defaultDetailLayout));
         general.Children.Add(UI.Text("仅影响以后新建的搜索窗口；已打开窗口保留各自的搜索广度、面板顺序和显示状态。",12));
-        general.Children.Add(Row(UI.Text("外观主题"),themeChoice));general.Children.Add(comfortable);general.Children.Add(Row(UI.Text("匹配词样式"),matchStyle));general.Children.Add(UI.Text("关于与版本",20));general.Children.Add(UI.Text("Soma Finder 0.6.5 · Windows 11 x64 · .NET 10 Fluent\n已测试适配：Soma 0.10.7（重建已在云端临时样例验证）\n当前连接版本："+app.Backend.ConnectedVersion+"\n绿色版设置存放在程序旁 data；现有 Soma 配置、模型和索引继续使用原位置。",14));
+        general.Children.Add(Row(UI.Text("外观主题"),themeChoice));general.Children.Add(comfortable);general.Children.Add(Row(UI.Text("匹配词样式"),matchStyle));general.Children.Add(UI.Text("关于与版本",20));general.Children.Add(UI.Text("Soma Finder 0.6.6 · Windows 11 x64 · .NET 10 Fluent\n已测试适配：Soma 0.10.7（重建已在云端临时样例验证）\n当前连接版本："+app.Backend.ConnectedVersion+"\n绿色版设置存放在程序旁 data；现有 Soma 配置、模型和索引继续使用原位置。",14));
         general.Children.Add(UI.Text("Copyright © 2026 znplusW\n开源许可：GPLv3（可按该许可再分发，不附带担保）。\n另提供单独协商的商业许可；闭源分发受约束的衍生作品前请取得授权。",12));
         general.Children.Add(UI.Button("查看许可与商业授权 / Licensing",()=>
         {

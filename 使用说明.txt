@@ -1,4 +1,4 @@
-Soma Finder 0.6.5 — Windows 11 x64
+Soma Finder 0.6.6 — Windows 11 x64
 
 先部署 Soma 后端，再使用 Soma Finder。
 测试适配：Soma 0.10.7 Windows x64。

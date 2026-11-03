@@ -24,7 +24,7 @@ Downloading the backend EXE alone does not complete semantic indexing. Initial s
 
 ## 2. Download Soma Finder
 
-1. Download `SomaFinder-0.6.5-win-x64.zip` from [Releases](https://github.com/znplusW/SomaFinder/releases/latest).
+1. Download `SomaFinder-0.6.6-win-x64.zip` from [Releases](https://github.com/znplusW/SomaFinder/releases/latest).
 2. Extract the **entire** folder to a writable location. Do not run it inside an archive manager or copy only the EXE.
 3. Open `SomaFinder.exe`. The .NET runtime is included.
 

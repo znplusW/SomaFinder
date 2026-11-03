@@ -24,7 +24,7 @@ $somaExe = "$env:USERPROFILE\Apps\Soma\soma.exe"
 
 ## 2. 下载 Soma Finder
 
-1. 从 [Soma Finder Releases](https://github.com/znplusW/SomaFinder/releases/latest) 下载 `SomaFinder-0.6.5-win-x64.zip`。
+1. 从 [Soma Finder Releases](https://github.com/znplusW/SomaFinder/releases/latest) 下载 `SomaFinder-0.6.6-win-x64.zip`。
 2. **完整解压**到可写文件夹。不要在压缩软件内直接运行，也不要只复制一个 EXE。
 3. 打开 `SomaFinder.exe`。程序自带 .NET 运行时，无需另装 .NET。
 
