@@ -48,6 +48,26 @@ jobs:
         if: always() && steps.build.outcome == 'success' && inputs.scope != 'media'
         shell: pwsh
         run: ./ci/run-interaction.ps1 -Mode public-release
+      - name: Model memory policy settings and task coordination
+        if: always() && steps.build.outcome == 'success' && inputs.scope != 'media'
+        shell: pwsh
+        run: ./ci/run-model-memory.ps1
+      - name: Real llama.cpp model unload and demand reload
+        if: always() && steps.build.outcome == 'success' && inputs.scope != 'media'
+        shell: pwsh
+        run: ./ci/run-model-memory-real.ps1
+      - name: Native Soma backend identity and lifecycle integration
+        if: always() && steps.build.outcome == 'success' && inputs.scope != 'media'
+        shell: pwsh
+        run: ./ci/run-integration.ps1 -Scope backends
+      - name: Search cancellation and pending backend requests
+        if: always() && steps.build.outcome == 'success' && inputs.scope != 'media'
+        shell: pwsh
+        run: |
+          $report=[IO.Path]::GetFullPath('reports/search-scenario.json')
+          $process=Start-Process artifacts/portable/SomaFinder.exe -ArgumentList @('--verify-search-scenario',('--report='+$report)) -PassThru -WindowStyle Hidden
+          if(-not $process.WaitForExit(120000)){$process.Kill($true);throw 'Search scenario timed out'}
+          if($process.ExitCode -ne 0){throw 'Search scenario failed'}
       - name: Package validated release assets
         if: success() && inputs.scope != 'media'
         shell: pwsh
