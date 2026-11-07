@@ -71,7 +71,7 @@ public sealed class SettingsWindow : Window
         comfortable=UI.Check("舒适显示密度（关闭时使用紧凑密度）",draft.Comfortable);
         themeChoice.ItemsSource=new[]{"跟随系统","浅色","深色"};themeChoice.SelectedIndex=draft.Theme=="Light"?1:draft.Theme=="Dark"?2:0;
         memory=UI.Check("内存不足时不启动新的自动同步",draft.Memory,"可用内存不足时暂缓新的自动同步；正在运行的索引不会暂停，仍可手动同步。定时暂停期间手动同步也不可用。");
-        releaseIdleModels=UI.Check("低内存且长时间空闲时，释放模型内存",draft.ReleaseIdleModels,"可用物理内存连续低于 4 GiB 达 2 分钟，且 Soma 无任务并已空闲 15 分钟时，卸载本程序托管的空闲模型。索引执行期间不回收；下次语义搜索按需重新加载。默认关闭。");
+        releaseIdleModels=UI.Check("低内存且长时间空闲时，释放模型内存",draft.ReleaseIdleModels,"可用物理内存连续低于 2 GiB 达 2 分钟，且 Soma 无任务并已空闲 15 分钟时，卸载本程序托管的空闲模型。索引执行期间不回收；下次语义搜索按需重新加载。默认关闭。");
         System.Windows.Automation.AutomationProperties.SetAutomationId(releaseIdleModels,"SomaFinder.ReleaseIdleModels");
         modelMemoryStatus.Margin=new Thickness(28,0,4,8);
         priority=UI.Check("降低索引任务优先级",draft.Priority,"降低索引任务的 CPU 优先级，可能延长索引时间。不限制 GPU 或内存占用。");

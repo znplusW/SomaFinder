@@ -4,7 +4,7 @@ namespace SomaFinder;
 
 internal sealed class ModelMemoryPolicy
 {
-    internal const ulong LowMemoryBytes=4UL*1024*1024*1024;
+    internal const ulong LowMemoryBytes=2UL*1024*1024*1024;
     internal const long LowMemoryMilliseconds=2*60*1000,IdleMilliseconds=15*60*1000;
     long? lowSince,idleSince,lastSample;
     bool enabled;

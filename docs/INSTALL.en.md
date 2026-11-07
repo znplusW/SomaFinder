@@ -40,7 +40,7 @@ The top level contains the application, Chinese usage notes, and release notes. 
 
 The defaults block automatic sync on battery, stop a running automatic sync when switching to battery, lower indexing priority, and defer automatic sync under low memory. Periodic sync must be enabled in Settings. A pause blocks new indexing work.
 
-Optional model memory reclaim is disabled by default under Sync and Resources. Both conditions must hold: available physical RAM below 4 GiB continuously for two minutes, and no Soma tasks for at least 15 minutes. It never reclaims during indexing. The next semantic request reloads the required model and takes longer to start.
+Optional model memory reclaim is disabled by default under Sync and Resources. Both conditions must hold: available physical RAM below 2 GiB continuously for two minutes, and no Soma tasks for at least 15 minutes. It never reclaims during indexing. The next semantic request reloads the required model and takes longer to start.
 
 ## 4. Search
 

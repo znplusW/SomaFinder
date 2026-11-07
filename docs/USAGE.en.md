@@ -34,7 +34,7 @@ Manual update incrementally synchronizes the configured scope. Rebuild clears an
 
 Timed pauses survive restarts until expiry. Tray Pause until next launch lasts for the current process session. Resume clears pauses but still respects power/memory policies. Lower priority is not a hard GPU or memory quota.
 
-Optional model memory reclaim is a separate setting and is off by default. It requires both available physical RAM below 4 GiB for two continuous minutes and at least 15 minutes with no searches, indexing or queued work. The timers overlap. Memory recovery resets the pressure timer; actual new work resets idleness. A cancelled window wait does not make unfinished backend work idle. Status refreshes do not reset idleness. Resume or a gap in observations requires fresh evidence.
+Optional model memory reclaim is a separate setting and is off by default. It requires both available physical RAM below 2 GiB for two continuous minutes and at least 15 minutes with no searches, indexing or queued work. The timers overlap. Memory recovery resets the pressure timer; actual new work resets idleness. A cancelled window wait does not make unfinished backend work idle. Status refreshes do not reset idleness. Resume or a gap in observations requires fresh evidence.
 
 Only verified local llama.cpp model services started by this Finder instance are eligible. Borrowed, unidentifiable or unsupported services are skipped. Model worker computation resets the idle window and busy slots block unloading. Model files and indexes are retained. Memory recovery alone does not reload models; actual requests do. Settings displays the result. Running indexing always blocks proactive reclaim.
 

@@ -1,7 +1,7 @@
-name: Model memory final targeted repair and package
+name: Model memory targeted candidate and package
 on:
   push:
-    branches: ['validation/model-memory-repair-0.6.7']
+    branches: ['validation/model-memory-repair-0.6.7', 'validation/model-memory-2gib-0.6.7']
   workflow_dispatch:
 permissions:
   contents: read
@@ -17,7 +17,7 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.403'
-      - name: Build candidate with unchanged production code
+      - name: Build candidate for scoped memory policy validation
         shell: pwsh
         run: ./构建.ps1
       - uses: actions/download-artifact@v4
@@ -39,7 +39,7 @@ jobs:
             if($report.commit -and $report.commit -ne '5c42ea951dbeabc41eb58e1fc399e2d09e77cdeb'){throw 'Unexpected source commit'}
             Copy-Item -LiteralPath $source -Destination reports
           }
-          @{sourceRun='42390454161';sourceCommit='5c42ea951dbeabc41eb58e1fc399e2d09e77cdeb';reusedGroups=$groups;reason='Only verification code and packaging metadata changed; package step verifies the exact source diff.'}|ConvertTo-Json -Depth 5|Set-Content reports/reused-evidence.json
+          @{sourceRun='42390454161';sourceCommit='5c42ea951dbeabc41eb58e1fc399e2d09e77cdeb';reusedGroups=$groups;reason='Unrelated groups reused; memory policy, exact GiB boundary, settings, real model reload and packaging rerun. Package step permits only the exact 4-to-2 GiB production edit.'}|ConvertTo-Json -Depth 5|Set-Content reports/reused-evidence.json
       - name: Recheck current version notices and synthesize current showcase
         shell: pwsh
         run: ./ci/run-interaction.ps1 -Mode public-release

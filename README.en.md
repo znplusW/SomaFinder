@@ -22,7 +22,7 @@ Soma Finder is a local file-search desktop frontend for **Windows 11 x64**, powe
 - **Open original files** — double-click to open, reveal in Explorer, or copy a path.
 - **Multiple windows** — a global hotkey, detachable summary/preview panes, resizable layouts, and light/dark themes.
 - **Indexing controls** — folder inclusion/exclusion, manual/scheduled updates, pause controls, progress, and power/resource policies.
-- **Optional model memory reclaim** — unload managed idle models only after available RAM stays below 4 GiB for two minutes and Soma has no tasks for 15 minutes; never during indexing, with demand loading on the next request.
+- **Optional model memory reclaim** — unload managed idle models only after available RAM stays below 2 GiB for two minutes and Soma has no tasks for 15 minutes; never during indexing, with demand loading on the next request.
 
 ![Soma Finder search interface](https://github.com/znplusW/SomaFinder/releases/download/v0.6.5/search-summary.png)
 

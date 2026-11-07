@@ -2,7 +2,7 @@
 
 ## 0.6.7 — 2026-11-08
 
-- 新增默认关闭的模型内存回收选项：可用物理内存低于 4 GiB 持续 2 分钟，且无任务并已空闲 15 分钟，才卸载托管的空闲模型。
+- 新增默认关闭的模型内存回收选项：可用物理内存低于 2 GiB 持续 2 分钟，且无任务并已空闲 15 分钟，才卸载托管的空闲模型。
 - 索引、排队请求、取消界面等待后仍在执行的搜索均阻止回收；新任务与卸载串行协调，下一次实际请求按需加载。
 - 使用 Windows 原生进程快照、路径和命令行查询，替代可能在冷启动或高负载下超时的 PowerShell/CIM 进程盘点；保留路径、创建时间与工作区身份核对。
 - Add opt-in model memory reclaim after two minutes of RAM pressure and 15 minutes of task idleness. Never reclaim during indexing; preserve pending work and reload models on demand.

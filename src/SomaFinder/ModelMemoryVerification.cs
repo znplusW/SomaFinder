@@ -26,14 +26,14 @@ internal static class ModelMemoryVerification
         Store.Atomic(root+"/metadata.json",JsonSerializer.Serialize(new{config=ws.ConfigPath,database=store.StateDirectory+"/main.sqlite",state=store.StateDirectory,runtime}));
         Environment.SetEnvironmentVariable(FixtureVariable,root);SetControl(root,new());
         var prefs=new Preferences{SomaExe=runtime+"/soma.exe",StartupSync=false,PeriodicSync=false,LowMemoryBlocksAuto=false};prefs.Volumes[docs]=Native.Identify(docs)!;
-        var app=new FinderApplication(store,prefs,true);int failures=0;var records=new List<object>();long now=0;ulong? available=3UL*1024*1024*1024;
+        var app=new FinderApplication(store,prefs,true);int failures=0;var records=new List<object>();long now=0;ulong? available=1UL*1024*1024*1024;
         var b=app.Backend;b.MemoryClock=()=>now;b.AvailableMemory=()=>available;
         app.Startup+=async(_,_)=>
         {
             void Check(bool yes,string message){if(!yes)throw new Exception(message);}
             async Task Test(string name,Func<Task> action){try{await action();records.Add(new{name,passed=true});Console.WriteLine("PASS "+name);}catch(Exception ex){failures++;records.Add(new{name,passed=false,error=ex.ToString()});Console.WriteLine("FAIL "+name+" "+ex.Message);}}
             async Task Advance(int seconds){for(int i=0;i<seconds;i+=10){now+=10*1000;await b.Pulse();}}
-            async Task Reset(bool enabled=true){b.Prefs.ReleaseIdleModelsOnLowMemory=enabled;b.Resumed();available=3UL*1024*1024*1024;await b.Pulse();}
+            async Task Reset(bool enabled=true){b.Prefs.ReleaseIdleModelsOnLowMemory=enabled;b.Resumed();available=1UL*1024*1024*1024;await b.Pulse();}
             async Task Search()=>await b.Search("needle","vector",new(){docs},20,new Dictionary<string,bool>{{docs,true}});
             async Task WaitEvent(string value,int after=0){var watch=Stopwatch.StartNew();while(Events(root,value)<=after){if(watch.Elapsed>TimeSpan.FromSeconds(12))throw new TimeoutException(value);await Task.Delay(25);}}
             try
@@ -46,6 +46,13 @@ internal static class ModelMemoryVerification
                 {
                     var p=new ModelMemoryPolicy();bool ready=false;for(long t=0;t<900000;t+=10000)ready=p.Observe(true,1,false,t);Check(!ready,"Early reclaim");Check(p.Observe(true,1,false,900000),"15 minute boundary missed");
                     p=new();for(long t=0;t<=840000;t+=10000)p.Observe(true,ulong.MaxValue,false,t);for(long t=840000;t<960000;t+=10000)Check(!p.Observe(true,1,false,t),"Pressure shorter than 2 minutes");Check(p.Observe(true,1,false,960000),"Independent pressure timer missed");return Task.CompletedTask;
+                });
+                await Test("strict 2 GiB threshold excludes exactly 2 GiB and 3 GiB, accepts one byte below",()=>
+                {
+                    const ulong twoGiB=2UL*1024*1024*1024;
+                    foreach(var bytes in new[]{twoGiB,3UL*1024*1024*1024})
+                    {var p=new ModelMemoryPolicy();for(long t=0;t<=1000000;t+=10000)Check(!p.Observe(true,bytes,false,t),"Reclaimed at or above 2 GiB");}
+                    var low=new ModelMemoryPolicy();for(long t=0;t<900000;t+=10000)Check(!low.Observe(true,twoGiB-1,false,t),"Reclaimed before idle deadline");Check(low.Observe(true,twoGiB-1,false,900000),"One byte below 2 GiB did not trigger");return Task.CompletedTask;
                 });
                 await Test("memory recovery resets pressure only; busy resets idle; sampling gaps restart evidence",()=>
                 {

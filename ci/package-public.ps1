@@ -11,9 +11,19 @@ $reports=Join-Path $root 'reports';$results=@()
 $reusedGroups=@()
 if($EvidenceBase){
     if($EvidenceBase -notmatch '^[0-9a-f]{40}$' -or $EvidenceRun -notmatch '^\d+$'){throw 'Invalid evidence identity'}
-    $allowed=@('src/SomaFinder/PublicReleaseVerification.cs','src/SomaFinder/ModelMemoryVerification.cs','ci/package-public.ps1','.github/workflows/model-memory-repair.yml')
+    $allowed=@('src/SomaFinder/PublicReleaseVerification.cs','src/SomaFinder/ModelMemoryVerification.cs','ci/package-public.ps1','.github/workflows/model-memory-repair.yml','src/SomaFinder/ModelMemoryPolicy.cs','src/SomaFinder/SettingsWindow.cs','README.md','README.en.md','CHANGELOG.md','docs/INSTALL.zh-CN.md','docs/INSTALL.en.md','docs/USAGE.zh-CN.md','docs/USAGE.en.md','更新说明.txt')
     $changed=@(& git -C $root diff --name-only $EvidenceBase HEAD)
     if($LASTEXITCODE -ne 0 -or @($changed|Where-Object {$_ -notin $allowed}).Count){throw 'Production source changed; full fresh regression required'}
+    $thresholdEdits=@{
+        'src/SomaFinder/ModelMemoryPolicy.cs'=@('LowMemoryBytes=4UL*1024*1024*1024','LowMemoryBytes=2UL*1024*1024*1024')
+        'src/SomaFinder/SettingsWindow.cs'=@('可用物理内存连续低于 4 GiB','可用物理内存连续低于 2 GiB')
+    }
+    foreach($file in $thresholdEdits.Keys|Where-Object {$_ -in $changed}){
+        $before=(@(& git -C $root show ($EvidenceBase+':'+$file)) -join "`n").TrimEnd()
+        if($LASTEXITCODE -ne 0 -or -not $before.Contains($thresholdEdits[$file][0])){throw 'Unexpected threshold baseline'}
+        $after=[IO.File]::ReadAllText((Join-Path $root $file)).Replace("`r`n","`n").TrimEnd()
+        if($after -cne $before.Replace($thresholdEdits[$file][0],$thresholdEdits[$file][1])){throw ('Changes beyond the verified threshold adjustment: '+$file)}
+    }
     $reusedGroups=@('full-regression','current-ui','design-ui','scheduling','backend-discovery','floating-windows','waterfall-resize','waterfall','image-preview','backend-integration','search-scenario')
 }
 foreach($name in @('full-regression','current-ui','design-ui','scheduling','backend-discovery','floating-windows','waterfall-resize','waterfall','image-preview','public-release','model-memory','model-memory-real','backend-integration','search-scenario')){
@@ -45,7 +55,7 @@ if(Get-ChildItem -LiteralPath $stage -Recurse -File -Force|Where-Object {$_.Exte
 if(Get-ChildItem -LiteralPath (Join-Path $stage 'Source') -Directory -Force -Recurse|Where-Object {$_.Name -in @('.git','obj','bin','data')}){throw 'Private or generated source content'}
 $expected=@('SomaFinder.exe','使用说明.txt','更新说明.txt')
 if(@(Compare-Object $expected @(Get-ChildItem -LiteralPath $stage -File|Select-Object -ExpandProperty Name)).Count){throw 'Incorrect root layout'}
-$proof=@{version=$Version;commit=$env:GITHUB_SHA;repository=$env:GITHUB_REPOSITORY;run=$env:GITHUB_RUN_ID;runUrl=('https://github.com/'+$env:GITHUB_REPOSITORY+'/actions/runs/'+$env:GITHUB_RUN_ID);environment='GitHub hosted Windows Server 2025 x64';checks=$results;evidenceBaseCommit=$EvidenceBase;evidenceBaseRun=$EvidenceRun;localApplicationTested=$false;physicalHardwareTested=$false;syntheticScreenshots=$true;testedSomaVersion='0.10.7 native backend identity/lifecycle integration; production model workloads not exercised';testedLlamaRuntime='b10068 CPU with SHA256-verified tinyllamas GGUF';gpuMemoryReclaimMeasured=$false;sourceArchive=[IO.Path]::GetFileName($sourceZip);binarySHA256=(Get-FileHash -LiteralPath (Join-Path $stage 'SomaFinder.exe')).Hash;signature=(Get-AuthenticodeSignature -LiteralPath (Join-Path $stage 'SomaFinder.exe')).Status.ToString();license='GPL-3.0-only; separate commercial agreement available'}
+$proof=@{version=$Version;commit=$env:GITHUB_SHA;repository=$env:GITHUB_REPOSITORY;run=$env:GITHUB_RUN_ID;runUrl=('https://github.com/'+$env:GITHUB_REPOSITORY+'/actions/runs/'+$env:GITHUB_RUN_ID);environment='GitHub hosted Windows Server 2025 x64';checks=$results;evidenceBaseCommit=$EvidenceBase;evidenceBaseRun=$EvidenceRun;memoryReclaimThresholdGiB=2;localApplicationTested=$false;physicalHardwareTested=$false;syntheticScreenshots=$true;testedSomaVersion='0.10.7 native backend identity/lifecycle integration; production model workloads not exercised';testedLlamaRuntime='b10068 CPU with SHA256-verified tinyllamas GGUF';gpuMemoryReclaimMeasured=$false;sourceArchive=[IO.Path]::GetFileName($sourceZip);binarySHA256=(Get-FileHash -LiteralPath (Join-Path $stage 'SomaFinder.exe')).Hash;signature=(Get-AuthenticodeSignature -LiteralPath (Join-Path $stage 'SomaFinder.exe')).Status.ToString();license='GPL-3.0-only; separate commercial agreement available'}
 $proof|ConvertTo-Json -Depth 7|Set-Content -LiteralPath (Join-Path $stage 'Documents/build-provenance.json') -Encoding utf8
 $proof|ConvertTo-Json -Depth 7|Set-Content -LiteralPath (Join-Path $release ('SomaFinder-'+$Version+'-build-provenance.json')) -Encoding utf8
 $summary="Soma Finder $Version public release candidate`nCommit: $env:GITHUB_SHA`nChecks: $(($results|Measure-Object -Property checks -Sum).Sum) passed cases in $($results.Count) groups; all selected checks passed.`nScope: frontend/package/media preview, memory-policy/task coordination, native Soma backend identity/lifecycle and real llama.cpp CPU model unload/reload; not production model/VHD/B390/physical-hardware acceptance.`nBackend compatibility: Soma 0.10.7.`nSee build-provenance.json and the public workflow for exact scope.`n"
