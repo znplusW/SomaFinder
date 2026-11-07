@@ -1,0 +1,41 @@
+name: Model memory reclaim targeted checks
+on:
+  push:
+    branches: ['test/model-memory-20261107']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  memory:
+    runs-on: windows-2025
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.403'
+      - name: Publish affected application
+        shell: pwsh
+        run: dotnet publish src/SomaFinder/SomaFinder.csproj -c Release --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None -p:DebugSymbols=false -o artifacts/portable
+      - name: Memory policy settings lifecycle and HTTP integration
+        if: success()
+        shell: pwsh
+        run: ./ci/run-model-memory.ps1
+      - name: Directly affected frontend and scheduling regression
+        if: always() && success()
+        shell: pwsh
+        run: ./ci/run-regression.ps1 -Scope targeted
+      - name: Search cancellation and deferred backend work
+        if: always() && success()
+        shell: pwsh
+        run: |
+          $report=[IO.Path]::GetFullPath('reports/search-scenario.json')
+          $process=Start-Process artifacts/portable/SomaFinder.exe -ArgumentList @('--verify-search-scenario',('--report='+$report)) -PassThru -WindowStyle Hidden
+          if(-not $process.WaitForExit(120000)){$process.Kill($true);throw 'Search scenario timed out'}
+          if($process.ExitCode -ne 0){throw 'Search scenario failed'}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: model-memory-reports-${{ github.run_id }}
+          path: reports/
+          retention-days: 14

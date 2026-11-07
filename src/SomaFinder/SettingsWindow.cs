@@ -22,6 +22,7 @@ public sealed class SettingsDraft
     public bool Comfortable {get;set;}
     public string MatchStyle {get;set;}="Bold";
     public bool Memory {get;set;}=true;
+    public bool ReleaseIdleModels {get;set;}
     public bool Priority {get;set;}=true;
     public bool ExitLast {get;set;}
     public bool NewWindow {get;set;}
@@ -41,7 +42,8 @@ public sealed class SettingsWindow : Window
     readonly CheckBox defaultSearch=UI.Check("默认选择此根目录",true),ignoreFiles=UI.Check("遵守目录的忽略文件规则",true);
     readonly Button cancelSearch,rebuild,pauseToggle;
     readonly TextBlock pauseStatus=UI.Text(""),notice=UI.Text(""),rootLabel=UI.Text(""),rebuildRange=UI.Text("");
-    readonly CheckBox startup,periodic,battery,batteryStop,memory,priority,exitLast,newWindow,resume,comfortable;
+    readonly CheckBox startup,periodic,battery,batteryStop,memory,releaseIdleModels,priority,exitLast,newWindow,resume,comfortable;
+    readonly TextBlock modelMemoryStatus=UI.Text("",12);
     readonly ComboBox matchStyle=new(){MinWidth=180,Margin=new Thickness(4)};
     readonly ComboBox themeChoice=new(){MinWidth=180,Margin=new Thickness(4)};
     SettingsDraft draft;Root? current;bool switching,saved,saving;string baseline="";string draftPath;
@@ -69,6 +71,9 @@ public sealed class SettingsWindow : Window
         comfortable=UI.Check("舒适显示密度（关闭时使用紧凑密度）",draft.Comfortable);
         themeChoice.ItemsSource=new[]{"跟随系统","浅色","深色"};themeChoice.SelectedIndex=draft.Theme=="Light"?1:draft.Theme=="Dark"?2:0;
         memory=UI.Check("内存不足时不启动新的自动同步",draft.Memory,"可用内存不足时暂缓新的自动同步；正在运行的索引不会暂停，仍可手动同步。定时暂停期间手动同步也不可用。");
+        releaseIdleModels=UI.Check("低内存且长时间空闲时，释放模型内存",draft.ReleaseIdleModels,"可用物理内存连续低于 4 GiB 达 2 分钟，且 Soma 无任务并已空闲 15 分钟时，卸载本程序托管的空闲模型。索引执行期间不回收；下次语义搜索按需重新加载。默认关闭。");
+        System.Windows.Automation.AutomationProperties.SetAutomationId(releaseIdleModels,"SomaFinder.ReleaseIdleModels");
+        modelMemoryStatus.Margin=new Thickness(28,0,4,8);
         priority=UI.Check("降低索引任务优先级",draft.Priority,"降低索引任务的 CPU 优先级，可能延长索引时间。不限制 GPU 或内存占用。");
         exitLast=UI.Check("关闭最后一个搜索窗口时，自动退出程序",draft.ExitLast);newWindow=UI.Check("全局快捷键新建搜索窗口（关闭时唤起最近窗口）",draft.NewWindow);resume=UI.Check("唤醒后补做错过的自动同步",draft.Resume);resume.ToolTip="电脑睡眠期间错过的自动同步，唤醒后补做一次；仍遵守暂停、电源和内存设置。";
         var frame=new DockPanel{Margin=new Thickness(16)};Content=frame;
@@ -81,7 +86,7 @@ public sealed class SettingsWindow : Window
         editor.Children.Add(defaultSearch);editor.Children.Add(ignoreFiles);editor.Children.Add(UI.Text("根目录说明"));description.AcceptsReturn=true;description.Height=80;editor.Children.Add(description);
         foreach(var input in new[]{includes,excludes,description})input.VerticalContentAlignment=VerticalAlignment.Top;
         tabs.Items.Add(new TabItem{Header="索引范围",Content=new ScrollViewer{Content=range,VerticalScrollBarVisibility=ScrollBarVisibility.Auto}});
-        var sync=new StackPanel{Margin=new Thickness(16)};sync.Children.Add(startup);sync.Children.Add(periodic);sync.Children.Add(Row(UI.Text("同步间隔（分钟）"),interval));sync.Children.Add(resume);sync.Children.Add(battery);sync.Children.Add(batteryStop);sync.Children.Add(memory);sync.Children.Add(priority);
+        var sync=new StackPanel{Margin=new Thickness(16)};sync.Children.Add(startup);sync.Children.Add(periodic);sync.Children.Add(Row(UI.Text("同步间隔（分钟）"),interval));sync.Children.Add(resume);sync.Children.Add(battery);sync.Children.Add(batteryStop);sync.Children.Add(memory);sync.Children.Add(releaseIdleModels);sync.Children.Add(modelMemoryStatus);sync.Children.Add(priority);
         sync.Children.Add(new Separator{Margin=new Thickness(0,12,0,12)});sync.Children.Add(UI.Text("临时暂停全部索引",20));
         pauseToggle=UI.Button("暂停索引",async()=>{try{if(app.Backend.CanResume)app.Backend.Continue();else{if(!double.TryParse(pauseHours.Text,out var hours))throw new ArgumentException("请输入有效小时数。");await app.Backend.Pause(hours);}}catch(Exception ex){UI.Error(ex.Message);}UpdateStatus();});
         pauseToggle.ToolTip="暂停全部目录的索引，搜索仍可使用；恢复后遵守电源和内存策略。";
@@ -100,7 +105,7 @@ public sealed class SettingsWindow : Window
         general.Children.Add(Row(UI.Text("默认搜索广度"),defaultSearchBreadth));
         general.Children.Add(Row(UI.Text("新建搜索窗口默认显示"),defaultDetailLayout));
         general.Children.Add(UI.Text("仅影响以后新建的搜索窗口；已打开窗口保留各自的搜索广度、面板顺序和显示状态。",12));
-        general.Children.Add(Row(UI.Text("外观主题"),themeChoice));general.Children.Add(comfortable);general.Children.Add(Row(UI.Text("匹配词样式"),matchStyle));general.Children.Add(UI.Text("关于与版本",20));general.Children.Add(UI.Text("Soma Finder 0.6.6 · Windows 11 x64 · .NET 10 Fluent\n已测试适配：Soma 0.10.7（重建已在云端临时样例验证）\n当前连接版本："+app.Backend.ConnectedVersion+"\n绿色版设置存放在程序旁 data；现有 Soma 配置、模型和索引继续使用原位置。",14));
+        general.Children.Add(Row(UI.Text("外观主题"),themeChoice));general.Children.Add(comfortable);general.Children.Add(Row(UI.Text("匹配词样式"),matchStyle));general.Children.Add(UI.Text("关于与版本",20));general.Children.Add(UI.Text("Soma Finder 0.6.7 · Windows 11 x64 · .NET 10 Fluent\n已测试适配：Soma 0.10.7（重建已在云端临时样例验证）\n当前连接版本："+app.Backend.ConnectedVersion+"\n绿色版设置存放在程序旁 data；现有 Soma 配置、模型和索引继续使用原位置。",14));
         general.Children.Add(UI.Text("Copyright © 2026 znplusW\n开源许可：GPLv3（可按该许可再分发，不附带担保）。\n另提供单独协商的商业许可；闭源分发受约束的衍生作品前请取得授权。",12));
         general.Children.Add(UI.Button("查看许可与商业授权 / Licensing",()=>
         {
@@ -142,12 +147,12 @@ public sealed class SettingsWindow : Window
     static StackPanel Row(params UIElement[] items){var p=new StackPanel{Orientation=Orientation.Horizontal};foreach(var i in items)p.Children.Add(i);return p;}
     SettingsDraft Capture()
     {
-        var p=app.Backend.Prefs;return new SettingsDraft{Workspaces=JsonSerializer.Deserialize<List<Workspace>>(JsonSerializer.Serialize(app.Backend.Workspaces))!,VolumeDisks=new(p.VolumeDisks,StringComparer.OrdinalIgnoreCase),AutoGroups=new(p.AutoGroups,StringComparer.OrdinalIgnoreCase),Exe=p.SomaExe,Interval=p.IntervalMinutes.ToString(),Hotkey=p.Hotkey,DefaultSearchBreadth=p.DefaultSearchBreadth.ToString(),DefaultDetailLayout=p.DefaultDetailLayout,Startup=p.StartupSync,Periodic=p.PeriodicSync,Battery=p.BatteryBlocksAuto,BatteryStop=p.BatteryStopsAuto,Theme=p.SearchLayout.Theme,Comfortable=p.SearchLayout.Comfortable,MatchStyle=p.SearchLayout.MatchStyle,Memory=p.LowMemoryBlocksAuto,Priority=p.LowerPriority,ExitLast=p.ExitOnLastWindow,NewWindow=p.HotkeyNewWindow,Resume=p.ResumeMissed};
+        var p=app.Backend.Prefs;return new SettingsDraft{Workspaces=JsonSerializer.Deserialize<List<Workspace>>(JsonSerializer.Serialize(app.Backend.Workspaces))!,VolumeDisks=new(p.VolumeDisks,StringComparer.OrdinalIgnoreCase),AutoGroups=new(p.AutoGroups,StringComparer.OrdinalIgnoreCase),Exe=p.SomaExe,Interval=p.IntervalMinutes.ToString(),Hotkey=p.Hotkey,DefaultSearchBreadth=p.DefaultSearchBreadth.ToString(),DefaultDetailLayout=p.DefaultDetailLayout,Startup=p.StartupSync,Periodic=p.PeriodicSync,Battery=p.BatteryBlocksAuto,BatteryStop=p.BatteryStopsAuto,Theme=p.SearchLayout.Theme,Comfortable=p.SearchLayout.Comfortable,MatchStyle=p.SearchLayout.MatchStyle,Memory=p.LowMemoryBlocksAuto,ReleaseIdleModels=p.ReleaseIdleModelsOnLowMemory,Priority=p.LowerPriority,ExitLast=p.ExitOnLastWindow,NewWindow=p.HotkeyNewWindow,Resume=p.ResumeMissed};
     }
     void ShowRoot(){switching=true;path.Text=current?.Path??"";includes.Text=string.Join(Environment.NewLine,current?.Include??new());excludes.Text=string.Join(Environment.NewLine,current?.Exclude??new());description.Text=current?.Description??"";defaultSearch.IsChecked=current?.DefaultSearch??true;ignoreFiles.IsChecked=current?.IgnoreFiles??true;rootLabel.Text=current==null?"选择一个目录":"目录设置";switching=false;}
     void CommitRoot(){if(current==null||switching)return;current.Include=Lines(includes.Text);current.Exclude=Lines(excludes.Text);current.Description=description.Text;current.DefaultSearch=defaultSearch.IsChecked==true;current.IgnoreFiles=ignoreFiles.IsChecked==true;}
     static List<string> Lines(string s)=>s.Split(new[]{'\r','\n'},StringSplitOptions.RemoveEmptyEntries).Select(x=>x.Trim()).Where(x=>x.Length>0).ToList();
-    void Pull(){CommitRoot();draft.Exe=exe.Text;draft.Interval=interval.Text;draft.Hotkey=hotkey.Text;draft.DefaultSearchBreadth=defaultSearchBreadth.Text;draft.DefaultDetailLayout=(DetailLayout)defaultDetailLayout.SelectedIndex;draft.Startup=startup.IsChecked==true;draft.Periodic=periodic.IsChecked==true;draft.Battery=battery.IsChecked==true;draft.BatteryStop=batteryStop.IsChecked==true;draft.Theme=themeChoice.SelectedIndex==1?"Light":themeChoice.SelectedIndex==2?"Dark":"System";draft.Comfortable=comfortable.IsChecked==true;draft.MatchStyle=matchStyle.SelectedIndex==1?"Yellow":"Bold";draft.Memory=memory.IsChecked==true;draft.Priority=priority.IsChecked==true;draft.ExitLast=exitLast.IsChecked==true;draft.NewWindow=newWindow.IsChecked==true;draft.Resume=resume.IsChecked==true;}
+    void Pull(){CommitRoot();draft.Exe=exe.Text;draft.Interval=interval.Text;draft.Hotkey=hotkey.Text;draft.DefaultSearchBreadth=defaultSearchBreadth.Text;draft.DefaultDetailLayout=(DetailLayout)defaultDetailLayout.SelectedIndex;draft.Startup=startup.IsChecked==true;draft.Periodic=periodic.IsChecked==true;draft.Battery=battery.IsChecked==true;draft.BatteryStop=batteryStop.IsChecked==true;draft.Theme=themeChoice.SelectedIndex==1?"Light":themeChoice.SelectedIndex==2?"Dark":"System";draft.Comfortable=comfortable.IsChecked==true;draft.MatchStyle=matchStyle.SelectedIndex==1?"Yellow":"Bold";draft.Memory=memory.IsChecked==true;draft.ReleaseIdleModels=releaseIdleModels.IsChecked==true;draft.Priority=priority.IsChecked==true;draft.ExitLast=exitLast.IsChecked==true;draft.NewWindow=newWindow.IsChecked==true;draft.Resume=resume.IsChecked==true;}
     public void PersistDraft(){Pull();if(JsonSerializer.Serialize(draft)!=baseline)Store.Atomic(draftPath,JsonSerializer.Serialize(draft,new JsonSerializerOptions{WriteIndented=true}));}
     string? PickFolder(){using var dialog=new Forms.FolderBrowserDialog{Description="选择资料目录",UseDescriptionForTitle=true};return dialog.ShowDialog()==Forms.DialogResult.OK?dialog.SelectedPath:null;}
     bool ValidateOverlap(string newPath,Root? excluded=null)
@@ -233,7 +238,7 @@ public sealed class SettingsWindow : Window
             _=new System.Windows.Input.KeyGestureConverter().ConvertFromString(draft.Hotkey)??throw new ArgumentException("快捷键格式无效。");
             foreach(var ws in changed)if(Store.Digest(ws.ConfigPath)!=ws.Hash)throw new IOException("索引范围配置已在外部变化，请重新打开设置。");
             var p=JsonSerializer.Deserialize<Preferences>(JsonSerializer.Serialize(app.Backend.Prefs))!;
-            p.VolumeDisks=new(draft.VolumeDisks,StringComparer.OrdinalIgnoreCase);p.AutoGroups=new(draft.AutoGroups,StringComparer.OrdinalIgnoreCase);BackendDiscovery.Remember(p,draft.Exe);p.IntervalMinutes=minutes;p.Hotkey=draft.Hotkey;p.DefaultSearchBreadth=breadth;p.DefaultDetailLayout=draft.DefaultDetailLayout;p.StartupSync=draft.Startup;p.PeriodicSync=draft.Periodic;p.BatteryBlocksAuto=draft.Battery;p.BatteryStopsAuto=draft.BatteryStop;p.SearchLayout.Theme=draft.Theme;p.SearchLayout.Comfortable=draft.Comfortable;p.SearchLayout.MatchStyle=draft.MatchStyle;p.LowMemoryBlocksAuto=draft.Memory;p.LowerPriority=draft.Priority;p.ExitOnLastWindow=draft.ExitLast;p.HotkeyNewWindow=draft.NewWindow;p.ResumeMissed=draft.Resume;
+            p.VolumeDisks=new(draft.VolumeDisks,StringComparer.OrdinalIgnoreCase);p.AutoGroups=new(draft.AutoGroups,StringComparer.OrdinalIgnoreCase);BackendDiscovery.Remember(p,draft.Exe);p.IntervalMinutes=minutes;p.Hotkey=draft.Hotkey;p.DefaultSearchBreadth=breadth;p.DefaultDetailLayout=draft.DefaultDetailLayout;p.StartupSync=draft.Startup;p.PeriodicSync=draft.Periodic;p.BatteryBlocksAuto=draft.Battery;p.BatteryStopsAuto=draft.BatteryStop;p.SearchLayout.Theme=draft.Theme;p.SearchLayout.Comfortable=draft.Comfortable;p.SearchLayout.MatchStyle=draft.MatchStyle;p.LowMemoryBlocksAuto=draft.Memory;p.ReleaseIdleModelsOnLowMemory=draft.ReleaseIdleModels;p.LowerPriority=draft.Priority;p.ExitOnLastWindow=draft.ExitLast;p.HotkeyNewWindow=draft.NewWindow;p.ResumeMissed=draft.Resume;
             foreach(var pair in draft.NewBindings)p.Volumes[pair.Key]=pair.Value;
             saving=true;IsEnabled=false;notice.Text="正在保存设置…";
             await app.Backend.SaveConfiguration(changed,p);
@@ -244,6 +249,6 @@ public sealed class SettingsWindow : Window
         finally{saving=false;IsEnabled=true;}
     }
     async Task RefreshPolicy(){try{await app.Backend.Pulse();}catch(Exception ex){notice.Text="设置已保存；同步策略应用失败："+ex.Message;}}
-    public void UpdateStatus(){UpdateRootProgress();pauseToggle.Content=app.Backend.CanResume?"恢复索引":"暂停索引";pauseHours.IsEnabled=!app.Backend.CanResume;pauseStatus.Text=app.Backend.CanResume?app.Backend.IndexPolicyReason:"";cancelSearch.Visibility=app.Backend.WaitingForSearch?Visibility.Visible:Visibility.Collapsed;rebuild.IsEnabled=!app.Backend.Busy&&!app.Backend.Paused&&!app.Backend.ChangingConfiguration&&app.Backend.InstanceConflict.Length==0;}
+    public void UpdateStatus(){UpdateRootProgress();modelMemoryStatus.Text=app.Backend.Prefs.ReleaseIdleModelsOnLowMemory?app.Backend.ModelMemoryStatus:"";pauseToggle.Content=app.Backend.CanResume?"恢复索引":"暂停索引";pauseHours.IsEnabled=!app.Backend.CanResume;pauseStatus.Text=app.Backend.CanResume?app.Backend.IndexPolicyReason:"";cancelSearch.Visibility=app.Backend.WaitingForSearch?Visibility.Visible:Visibility.Collapsed;rebuild.IsEnabled=!app.Backend.Busy&&!app.Backend.Paused&&!app.Backend.ChangingConfiguration&&app.Backend.InstanceConflict.Length==0;}
     internal void SelectCloudWorkspace(string name){if(!CloudSandbox.Active)throw new InvalidOperationException();workspaces.SelectedItem=draft.Workspaces.Single(w=>w.Name==name);}
 }

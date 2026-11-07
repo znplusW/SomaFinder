@@ -3,7 +3,7 @@
     <OutputType>WinExe</OutputType><TargetFramework>net10.0-windows</TargetFramework>
     <PublishAot>true</PublishAot><RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings><AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <AssemblyName>SomaFinder.TrayHost</AssemblyName><Version>0.6.6</Version>
+    <AssemblyName>SomaFinder.TrayHost</AssemblyName><Version>0.6.7</Version>
     <Product>Soma Finder</Product><Title>Soma Finder</Title><Description>Soma Finder</Description><FileDescription>Soma Finder</FileDescription>
     <ApplicationIcon>../SomaFinder/Assets/SomaFinder.ico</ApplicationIcon><DebugType>None</DebugType>
   </PropertyGroup>

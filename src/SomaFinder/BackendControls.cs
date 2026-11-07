@@ -29,6 +29,7 @@ public sealed partial class Backend
     }
     public async Task SaveConfiguration(List<Workspace> changed,Preferences preferences)
     {
+        using var memoryUse=await UseModelResources();
         if(configurationChanging)throw new IOException("正在应用目录变更，请稍候。");
         ValidateExecutableChange(preferences.SomaExe);
         if(InstanceConflict.Length>0&&changed.Count>0)throw new IOException(InstanceConflict);

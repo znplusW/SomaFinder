@@ -12,12 +12,14 @@ public static class Program
 {
     [STAThread] public static int Main(string[] args)
     {
+        if(Environment.GetEnvironmentVariable(ModelMemoryVerification.FixtureVariable)!=null&&(args.Contains("--model-memory-router-fixture")||System.IO.Path.GetFileName(Environment.ProcessPath).Equals("soma.exe",StringComparison.OrdinalIgnoreCase)))return ModelMemoryVerification.Fixture(args);
         if(args.Contains("--thumbnail-worker")){RenderOptions.ProcessRenderMode=RenderMode.SoftwareOnly;return ThumbnailWorker.Run();}
         try
         {
             // Scope the rendering compatibility workaround to this WPF process.
             // Must precede every HwndSource, including the global hotkey window.
             RenderOptions.ProcessRenderMode=RenderMode.SoftwareOnly;
+            if(args.Contains("--verify-model-memory"))return ModelMemoryVerification.Run(args);
             if(args.Contains("--verify-public-release"))return PublicReleaseVerification.Run(args);
             if(args.Contains("--verify-floating-windows"))return FloatingWindowVerification.Run(args);
             if(args.Contains("--verify-waterfall-resize"))return WaterfallResizeVerification.Run(args);

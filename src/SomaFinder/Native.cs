@@ -32,6 +32,10 @@ public static class Native
     [DllImport("user32.dll")] public static extern bool UnregisterHotKey(IntPtr window, int id);
     public static bool? ACPower => GetSystemPowerStatus(out var p)&&p.AC is 0 or 1?p.AC==1:null;
     public static bool OnAC => ACPower==true;
+    public static ulong? AvailablePhysicalMemory
+    {
+        get {var s=new MemoryStatus{Length=(uint)Marshal.SizeOf<MemoryStatus>()};return GlobalMemoryStatusEx(ref s)?s.Available:null;}
+    }
     public static bool EnoughMemory
     {
         get { var s = new MemoryStatus { Length=(uint)Marshal.SizeOf<MemoryStatus>() }; return GlobalMemoryStatusEx(ref s) && s.Available >= Math.Max(2UL*1024*1024*1024, s.Total/10); }

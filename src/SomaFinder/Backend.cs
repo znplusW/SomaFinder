@@ -149,6 +149,7 @@ public sealed partial class Backend : IDisposable
     static string Phase(string line) {var s=line.ToLowerInvariant();return s.Contains("embed")?"生成语义向量":s.Contains("extract")||s.Contains("ocr")?"提取文件内容":s.Contains("scan")?"扫描文件":s.Contains("pull")?"检查模型与依赖":"正在更新索引";}
     public async Task<JsonElement> Rpc(Workspace ws,string command,object? args=null,object? options=null)
     {
+        using var memoryUse=command!="status"?await UseModelResources():null;
         bool tracked=command!="status";
         if(tracked)RequestCount++;
         if(tracked&&draining&&readLease.Value==0)throw new IOException("正在切换搜索服务，请稍后重试。");
@@ -215,6 +216,7 @@ public sealed partial class Backend : IDisposable
     }
     public async Task RunSync(Workspace ws,bool manual=false,bool rebuild=false)
     {
+        using var memoryUse=await UseModelResources();
         if(rebuild&&(CloudSandbox.Active||Environment.GetEnvironmentVariable("SOMAFINDER_TEST")=="1")&&!CloudSandbox.AllowsRebuild(store,ws))throw new InvalidOperationException("测试模式禁止清空或重建非云端临时样例索引。");
         if(!initialized)throw new IOException("后端尚未完成接管，请稍后操作。");
         if(ws.Roots.Count==0)throw new IOException("请先添加索引目录。");
@@ -303,6 +305,7 @@ public sealed partial class Backend : IDisposable
     public void AbortExit(){exiting=false;draining=false;}
     public void Resumed()
     {
+        ResetMemoryPolicy();
         if(!Prefs.ResumeMissed){due.Clear();foreach(var ws in Workspaces)resumeNotBefore[ws.Name]=DateTimeOffset.UtcNow.AddMinutes(Prefs.IntervalMinutes);}
     }
     async Task VerifyStorage()
@@ -379,6 +382,7 @@ public sealed partial class Backend : IDisposable
             if(!Prefs.StartupSync&&!Prefs.PeriodicSync) due.Clear();
             if(InstanceConflict.Length==0&&!Paused&&!Busy&&!configurationChanging&&!File.Exists(PendingPath)&&!draining&&!manualBatch&&AutomaticAllowed(Prefs,DateTimeOffset.UtcNow,PowerSource()==true,Native.EnoughMemory))
             {var ws=Workspaces.FirstOrDefault(w=>(due.Contains(w.Name)||resumeSync.Contains(w.Name))&&w.Roots.Count>0&&DateTimeOffset.UtcNow>=retryAfter.GetValueOrDefault(w.Name,DateTimeOffset.MinValue));if(ws!=null)_=RunAuto(ws);}
+            await ReclaimIdleModelMemory();
             Changed?.Invoke();
         }
         finally{pulseBusy=false;}
@@ -388,6 +392,7 @@ public sealed partial class Backend : IDisposable
         =>BackendInstances.Writers(store,Workspaces).Count>0;
     public async Task StopAll()
     {
+        using var memoryUse=await UseModelResources();
         exiting=true;draining=true;
         var processes=await Inspect();foreach(var p in processes)try{Native.Stop(p);}catch(ArgumentException){}
     }

@@ -33,6 +33,7 @@ public sealed partial class Backend
     }
     async Task<List<Hit>> SearchCore(string text,string mode,List<string> scope,int limit,IReadOnlyDictionary<string,bool>? state,Func<bool>? current,CancellationToken token,Action<SearchUpdate>? progress)
     {
+        using var memoryUse=await UseModelResources();
         SearchCount++;
         if(scope.Count==0)return new();
         if(!initialized)throw new IOException("正在连接 Soma，请稍后搜索。");
