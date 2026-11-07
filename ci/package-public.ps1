@@ -12,7 +12,7 @@ $reusedGroups=@()
 if($EvidenceBase){
     if($EvidenceBase -notmatch '^[0-9a-f]{40}$' -or $EvidenceRun -notmatch '^\d+$'){throw 'Invalid evidence identity'}
     $allowed=@('src/SomaFinder/PublicReleaseVerification.cs','src/SomaFinder/ModelMemoryVerification.cs','ci/package-public.ps1','.github/workflows/model-memory-repair.yml','src/SomaFinder/ModelMemoryPolicy.cs','src/SomaFinder/SettingsWindow.cs','README.md','README.en.md','CHANGELOG.md','docs/INSTALL.zh-CN.md','docs/INSTALL.en.md','docs/USAGE.zh-CN.md','docs/USAGE.en.md','更新说明.txt')
-    $changed=@(& git -C $root diff --name-only $EvidenceBase HEAD)
+    $changed=@(& git -c core.quotepath=false -C $root diff --name-only $EvidenceBase HEAD)
     if($LASTEXITCODE -ne 0 -or @($changed|Where-Object {$_ -notin $allowed}).Count){throw 'Production source changed; full fresh regression required'}
     $thresholdEdits=@{
         'src/SomaFinder/ModelMemoryPolicy.cs'=@('LowMemoryBytes=4UL*1024*1024*1024','LowMemoryBytes=2UL*1024*1024*1024')
