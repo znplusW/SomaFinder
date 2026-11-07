@@ -25,6 +25,14 @@ jobs:
         if: always() && success()
         shell: pwsh
         run: ./ci/run-regression.ps1 -Scope targeted
+      - name: Real llama.cpp unload and demand reload
+        if: always() && success()
+        shell: pwsh
+        run: ./ci/run-model-memory-real.ps1
+      - name: Backend identity and lifecycle integration after native inventory change
+        if: always() && success()
+        shell: pwsh
+        run: ./ci/run-integration.ps1 -Scope backends
       - name: Search cancellation and deferred backend work
         if: always() && success()
         shell: pwsh

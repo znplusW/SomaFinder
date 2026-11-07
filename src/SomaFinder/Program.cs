@@ -20,6 +20,7 @@ public static class Program
             // Must precede every HwndSource, including the global hotkey window.
             RenderOptions.ProcessRenderMode=RenderMode.SoftwareOnly;
             if(args.Contains("--verify-model-memory"))return ModelMemoryVerification.Run(args);
+            if(args.Contains("--verify-model-memory-real"))return ModelMemoryVerification.RunReal(args);
             if(args.Contains("--verify-public-release"))return PublicReleaseVerification.Run(args);
             if(args.Contains("--verify-floating-windows"))return FloatingWindowVerification.Run(args);
             if(args.Contains("--verify-waterfall-resize"))return WaterfallResizeVerification.Run(args);

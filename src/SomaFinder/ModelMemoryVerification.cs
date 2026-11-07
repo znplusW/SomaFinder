@@ -144,7 +144,22 @@ internal static class ModelMemoryVerification
             Store.Atomic(root+"/runtime.json",JsonSerializer.Serialize(new{pid=Environment.ProcessId,port=router.Port}));await Task.Delay(Timeout.Infinite);return 0;
         }
         if(!args.Contains("server"))return 2;
-        var start=new ProcessStartInfo(m.GetProperty("runtime").GetString()+"/llama-server.exe"){UseShellExecute=false,CreateNoWindow=true};start.ArgumentList.Add("--model-memory-router-fixture");using var child=Process.Start(start)!;
+        bool real=m.TryGetProperty("realExecutable",out var realExecutable)&&realExecutable.ValueKind==JsonValueKind.String;
+        var start=new ProcessStartInfo(real?realExecutable.GetString():m.GetProperty("runtime").GetString()+"/llama-server.exe"){UseShellExecute=false,CreateNoWindow=true};
+        int realPort=0;
+        if(real)
+        {
+            using(var probe=new TcpListener(IPAddress.Loopback,0)){probe.Start();realPort=((IPEndPoint)probe.LocalEndpoint).Port;}
+            foreach(var arg in new[]{"--host","127.0.0.1","--port",realPort.ToString(),"--models-preset",root+"/models.ini","--models-max","5","--models-autoload"})start.ArgumentList.Add(arg);
+        }
+        else start.ArgumentList.Add("--model-memory-router-fixture");
+        using var child=Process.Start(start)!;
+        if(real)
+        {
+            using var health=new HttpClient(new HttpClientHandler{UseProxy=false}){Timeout=TimeSpan.FromSeconds(1)};bool ready=false;
+            for(int i=0;i<200;i++){if(child.HasExited)throw new IOException("Real llama router exited");try{using var response=await health.GetAsync("http://127.0.0.1:"+realPort+"/health");if(response.IsSuccessStatusCode){ready=true;break;}}catch(HttpRequestException){}catch(TaskCanceledException){}await Task.Delay(50);}
+            if(!ready)throw new TimeoutException("Real llama router not ready");Store.Atomic(root+"/runtime.json",JsonSerializer.Serialize(new{pid=child.Id,port=realPort}));
+        }
         int port=int.Parse(args.Single(a=>a.StartsWith("--port="))[7..]);
         using var server=new MiniServer(async(path,body)=>
         {
@@ -157,6 +172,41 @@ internal static class ModelMemoryVerification
             return new{success=true,data=new{results=new[]{new{project="docs",path="sentinel.md",virtualPath="soma://docs/sentinel.md",snippet="needle retained fixture"}}}};
         },port);
         await Task.Delay(Timeout.Infinite);return 0;
+    }
+    internal static int RunReal(string[] args)=>RunRealAsync(args).GetAwaiter().GetResult();
+    static async Task<int> RunRealAsync(string[] args)
+    {
+        string report=System.IO.Path.GetFullPath(args.Single(a=>a.StartsWith("--report="))[9..]);
+        string realExecutable=System.IO.Path.GetFullPath(args.Single(a=>a.StartsWith("--llama="))[8..]);
+        string tinyModel=System.IO.Path.GetFullPath(args.Single(a=>a.StartsWith("--model="))[8..]);
+        var root=System.IO.Path.Combine(Environment.GetEnvironmentVariable("RUNNER_TEMP")!,"SomaFinder-cloud-model-memory-real-"+Guid.NewGuid().ToString("N"));CloudSandbox.Initialize(root);
+        var records=new List<object>();int failures=0;Backend? backend=null;
+        try
+        {
+            string runtime=root+"/runtime";Directory.CreateDirectory(runtime);File.Copy(Environment.ProcessPath!,runtime+"/soma.exe");
+            var store=new Store(root+"/data",root+"/config",root+"/state");string docs=root+"/docs";Directory.CreateDirectory(docs);File.WriteAllText(docs+"/sentinel.md","needle retained fixture");
+            var ws=new Workspace{Name="main",ConfigPath=store.ConfigDirectory+"/main.yml",Roots=new(){new(){Name="docs",Path=docs}}};store.SaveWorkspace(ws);Directory.CreateDirectory(store.StateDirectory);File.WriteAllText(store.StateDirectory+"/main.sqlite","synthetic retained index bytes");
+            Store.Atomic(root+"/metadata.json",JsonSerializer.Serialize(new{config=ws.ConfigPath,database=store.StateDirectory+"/main.sqlite",state=store.StateDirectory,runtime,realExecutable}));
+            Store.Atomic(root+"/models.ini","[EXPAND]\nmodel = "+tinyModel+"\nctx-size = 512\ngpu-layers = 0\nparallel = 1\n");SetControl(root,new());Environment.SetEnvironmentVariable(FixtureVariable,root);
+            backend=new(store,new Preferences{SomaExe=runtime+"/soma.exe",StartupSync=false,PeriodicSync=false});await backend.Initialize(false);
+            async Task Search()=>await backend.Search("needle","vector",new(){docs},20);
+            await Search();var owner=(await Native.SomaProcesses(runtime+"/soma.exe")).Single(Native.IsServer);var runtimeData=await WaitRuntime(root);int routerPid=runtimeData.GetProperty("pid").GetInt32();
+            var adapter=ModelRuntime.Find(owner).Single();var before=Native.Descendants(owner).Where(p=>p.ParentId==routerPid).ToArray();if(before.Length!=1)throw new Exception("Expected one real model worker");
+            using var worker=Process.GetProcessById(before[0].Id);long beforeWorkingSet=worker.WorkingSet64,beforePrivate=worker.PrivateMemorySize64;string indexHash=Store.Digest(store.StateDirectory+"/main.sqlite");
+            int unloaded=await adapter.ReleaseIdleModels(()=>true);if(unloaded!=1||Native.Alive(before[0])||!Native.Alive(owner))throw new Exception("Real model did not exit while retaining backend");
+            records.Add(new{name="actual llama.cpp b10068 unload exits model worker and retains router",passed=true,oldWorkerPid=before[0].Id,workingSetBefore=beforeWorkingSet,privateBytesBefore=beforePrivate});
+            var watch=Stopwatch.StartNew();await Search();var after=Native.Descendants(owner).Where(p=>p.ParentId==routerPid).ToArray();if(after.Length!=1||after[0].Id==before[0].Id)throw new Exception("Real model did not autoload in a new worker");
+            records.Add(new{name="next real completion autoloads model and completes",passed=true,newWorkerPid=after[0].Id,reloadMilliseconds=watch.Elapsed.TotalMilliseconds});
+            if(Store.Digest(store.StateDirectory+"/main.sqlite")!=indexHash)throw new Exception("Index changed during real runtime unload");records.Add(new{name="retained synthetic index bytes unchanged",passed=true});
+        }
+        catch(Exception ex){failures++;records.Add(new{name="real runtime suite",passed=false,error=ex.ToString()});}
+        finally
+        {
+            if(backend!=null){try{await backend.StopAll();}catch(Exception ex){failures++;records.Add(new{name="cleanup",passed=false,error=ex.ToString()});}backend.Dispose();}
+            Environment.SetEnvironmentVariable(FixtureVariable,null);
+            Store.Atomic(report,JsonSerializer.Serialize(new{commit=Environment.GetEnvironmentVariable("GITHUB_SHA"),version=typeof(Program).Assembly.GetName().Version?.ToString(),failures,tests=records,scope="Real pinned llama.cpp b10068 CPU runtime and SHA256-verified tinyllamas GGUF; real process unload/autoload through production native adapter. Controlled Soma HTTP fixture, not full Soma integration or B390/GPU hardware acceptance."},new JsonSerializerOptions{WriteIndented=true}));
+        }
+        return failures==0?0:1;
     }
     sealed class MiniServer:IDisposable
     {
@@ -171,7 +221,7 @@ internal static class ModelMemoryVerification
                 while(header.Count<16384){if(await stream.ReadAsync(one)==0)return;header.Add(one[0]);if(header.Count>=4&&header.TakeLast(4).SequenceEqual(new byte[]{13,10,13,10}))break;}
                 var lines=Encoding.ASCII.GetString(header.ToArray()).Split("\r\n");string path=lines[0].Split(' ')[1];int length=lines.Where(x=>x.StartsWith("Content-Length:",StringComparison.OrdinalIgnoreCase)).Select(x=>int.Parse(x[15..].Trim())).FirstOrDefault();if(length<0||length>65536)throw new IOException("Fixture body too large");var body=new byte[length];await stream.ReadExactlyAsync(body);
                 var result=await handle(path,Encoding.UTF8.GetString(body));var bytes=JsonSerializer.SerializeToUtf8Bytes(result);var prefix=Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nConnection: close\r\nContent-Length: "+bytes.Length+"\r\n\r\n");await stream.WriteAsync(prefix);await stream.WriteAsync(bytes);
-            }catch(Exception ex){Console.Error.WriteLine(ex.Message);}
+            }catch(Exception ex){Console.Error.WriteLine(ex.ToString());}
         }
         public void Dispose()=>listener.Stop();
     }

@@ -67,25 +67,55 @@ public static class Native
     public sealed record Proc(int Id, int ParentId, string File, string Command,long StartTicks=0,string[]? KnownArguments=null);
     public static async Task<List<Proc>> SomaProcesses(string exe)
         =>(await BackendProcesses(new[]{exe})).Where(p=>SameFilePath(p.File,exe)).ToList();
-    public static async Task<List<Proc>> BackendProcesses(IEnumerable<string> knownPaths,IEnumerable<int>? ownerIds=null)
+    public static Task<List<Proc>> BackendProcesses(IEnumerable<string> knownPaths,IEnumerable<int>? ownerIds=null)
     {
-        // Include known renamed executables and the owner of an actual workspace write lock.
-        // A Finder process or a model worker is not itself another Soma installation.
-        var psi=new ProcessStartInfo("powershell.exe") { UseShellExecute=false,CreateNoWindow=true,RedirectStandardOutput=true,RedirectStandardError=true,StandardOutputEncoding=Encoding.UTF8 };
-        // Filter absent PATH candidates before the bounded environment payload, so a long
-        // PATH cannot push an explicitly selected renamed executable out of the query.
-        psi.Environment["SOMAFINDER_KNOWN_PATHS"]=JsonSerializer.Serialize(knownPaths.Where(File.Exists).Distinct(StringComparer.OrdinalIgnoreCase).Take(64).ToArray());
-        psi.Environment["SOMAFINDER_OWNER_IDS"]=JsonSerializer.Serialize((ownerIds??Array.Empty<int>()).ToArray());
-        foreach(var a in new[]{"-NoProfile","-NonInteractive","-Command","[Console]::OutputEncoding=[System.Text.UTF8Encoding]::new($false);$known=ConvertFrom-Json $env:SOMAFINDER_KNOWN_PATHS;$owners=ConvertFrom-Json $env:SOMAFINDER_OWNER_IDS;Get-CimInstance Win32_Process | Where-Object {$_.Name -match '^soma(?:[._-].*)?\\.exe$' -or $known -contains $_.ExecutablePath -or $owners -contains $_.ProcessId} | Select-Object ProcessId,ParentProcessId,ExecutablePath,CommandLine,@{Name='StartTicks';Expression={$_.CreationDate.ToUniversalTime().Ticks}} | ConvertTo-Json -Compress"}) psi.ArgumentList.Add(a);
-        using var p=Process.Start(psi)!; var outputTask=p.StandardOutput.ReadToEndAsync(); var errors=p.StandardError.ReadToEndAsync();
-        try{await p.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(12));}catch{try{p.Kill(true);}catch{}throw;}
-        var output=await outputTask; await errors;
-        if(p.ExitCode!=0) throw new IOException("无法核对 Soma 进程归属，暂缓索引接管。");
-        if(string.IsNullOrWhiteSpace(output)) return new();
-        using var doc=JsonDocument.Parse(output); var nodes=doc.RootElement.ValueKind==JsonValueKind.Array ? doc.RootElement.EnumerateArray().ToArray() : new[]{doc.RootElement};
-        if(nodes.Any(x=>x.GetProperty("ExecutablePath").ValueKind!=JsonValueKind.String||x.GetProperty("CommandLine").ValueKind!=JsonValueKind.String))throw new IOException("部分 Soma 进程的归属无法读取，自动索引暂缓。请关闭其他实例后重新检测。");
-        return nodes.Where(x=>x.GetProperty("ExecutablePath").GetString() is string file&&!string.IsNullOrWhiteSpace(file))
-            .Select(x=>new Proc(x.GetProperty("ProcessId").GetInt32(),x.GetProperty("ParentProcessId").GetInt32(),x.GetProperty("ExecutablePath").GetString()!,x.GetProperty("CommandLine").GetString() ?? "",x.GetProperty("StartTicks").GetInt64())).ToList();
+        var paths=knownPaths.Where(File.Exists).Select(System.IO.Path.GetFullPath).Distinct(StringComparer.OrdinalIgnoreCase).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var names=paths.Select(System.IO.Path.GetFileName).ToHashSet(StringComparer.OrdinalIgnoreCase);var owners=(ownerIds??Array.Empty<int>()).ToHashSet();
+        // Toolhelp and limited process-query handles avoid starting PowerShell/WMI
+        // on every inventory. Missing identity still blocks takeover; it never means idle.
+        return Task.Run(()=>
+        {
+            using var snapshot=CreateToolhelp32Snapshot(2,0);if(snapshot.IsInvalid)throw new IOException("无法核对 Soma 进程列表。");
+            var result=new List<Proc>();var entry=new ProcessEntry{Size=(uint)Marshal.SizeOf<ProcessEntry>(),Name=""};
+            if(!Process32FirstW(snapshot,ref entry))throw new IOException("无法读取 Soma 进程快照。");
+            do
+            {
+                int id=(int)entry.Id;
+                if(!Regex.IsMatch(entry.Name,@"^soma(?:[._-].*)?\.exe$",RegexOptions.IgnoreCase)&&!names.Contains(entry.Name)&&!owners.Contains(id))continue;
+                using var handle=OpenProcess(0x1000,false,id);
+                if(handle.IsInvalid){if(Marshal.GetLastWin32Error()==87)continue;throw new IOException("部分 Soma 进程的归属无法读取，自动索引暂缓。");}
+                var image=new StringBuilder(32768);int length=image.Capacity;
+                if(!QueryFullProcessImageName(handle,0,image,ref length)||!GetProcessTimes(handle,out long created,out _,out _,out _))
+                {if(Exited(id))continue;throw new IOException("无法读取 Soma 进程路径或创建时间。");}
+                var file=image.ToString();
+                if(!Regex.IsMatch(entry.Name,@"^soma(?:[._-].*)?\.exe$",RegexOptions.IgnoreCase)&&!paths.Contains(file)&&!owners.Contains(id))continue;
+                string command;
+                try{command=ProcessCommand(handle);}catch(IOException){if(Exited(id))continue;throw;}
+                result.Add(new(id,(int)entry.Parent,file,command,DateTime.FromFileTimeUtc(created).Ticks));
+            }while(Process32NextW(snapshot,ref entry));
+            if(Marshal.GetLastWin32Error()!=18)throw new IOException("Soma 进程列表读取不完整，自动索引暂缓。");
+            return result;
+        });
+    }
+    static bool Exited(int id){try{using var p=Process.GetProcessById(id);return p.HasExited;}catch(ArgumentException){return true;}}
+    [DllImport("kernel32.dll",SetLastError=true)]static extern SafeProcessHandle OpenProcess(uint access,bool inherit,int id);
+    [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true)]static extern bool QueryFullProcessImageName(SafeProcessHandle process,uint flags,StringBuilder image,ref int size);
+    [DllImport("kernel32.dll",SetLastError=true)]static extern bool GetProcessTimes(SafeProcessHandle process,out long created,out long exited,out long kernel,out long user);
+    [DllImport("ntdll.dll")]static extern int NtQueryInformationProcess(SafeProcessHandle process,int information,IntPtr buffer,int length,out int returned);
+    [StructLayout(LayoutKind.Sequential)]struct UnicodeText {public ushort Length,Maximum;public IntPtr Buffer;}
+    static string ProcessCommand(SafeProcessHandle process)
+    {
+        NtQueryInformationProcess(process,60,IntPtr.Zero,0,out int needed);
+        if(needed<Marshal.SizeOf<UnicodeText>()||needed>131072)throw new IOException("无法核对 Soma 命令行。");
+        var memory=Marshal.AllocHGlobal(needed);
+        try
+        {
+            if(NtQueryInformationProcess(process,60,memory,needed,out _)!=0)throw new IOException("无法读取 Soma 命令行，自动索引暂缓。");
+            var value=Marshal.PtrToStructure<UnicodeText>(memory);long offset=value.Buffer.ToInt64()-memory.ToInt64();
+            if(value.Length%2!=0||offset<Marshal.SizeOf<UnicodeText>()||offset+value.Length>needed)throw new IOException("Soma 命令行数据无效。");
+            return Marshal.PtrToStringUni(value.Buffer,value.Length/2)??throw new IOException("Soma 命令行缺失。");
+        }
+        finally{Marshal.FreeHGlobal(memory);}
     }
     [DllImport("shell32.dll",CharSet=CharSet.Unicode)] static extern IntPtr CommandLineToArgvW(string command,out int count);
     [DllImport("kernel32.dll")] static extern IntPtr LocalFree(IntPtr memory);
