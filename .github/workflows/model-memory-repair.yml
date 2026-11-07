@@ -1,0 +1,69 @@
+name: Model memory final targeted repair and package
+on:
+  push:
+    branches: ['validation/model-memory-repair-0.6.7']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  candidate:
+    runs-on: windows-2025
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.403'
+      - name: Build candidate with unchanged production code
+        shell: pwsh
+        run: ./构建.ps1
+      - uses: actions/download-artifact@v4
+        with:
+          name: public-release-reports-42390454161
+          path: base-reports
+          github-token: ${{ github.token }}
+          repository: znplusW/SomaFinder-Test
+          run-id: 42390454161
+      - name: Reuse only passing groups from the full candidate regression
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force reports|Out-Null
+          $groups=@('full-regression','current-ui','design-ui','scheduling','backend-discovery','floating-windows','waterfall-resize','waterfall','image-preview','backend-integration','search-scenario')
+          foreach($name in $groups){
+            $source=Join-Path base-reports ($name+'.json')
+            $report=Get-Content -LiteralPath $source -Raw|ConvertFrom-Json
+            if($report.failures -ne 0){throw ('Cannot reuse failed check: '+$name)}
+            if($report.commit -and $report.commit -ne '5c42ea951dbeabc41eb58e1fc399e2d09e77cdeb'){throw 'Unexpected source commit'}
+            Copy-Item -LiteralPath $source -Destination reports
+          }
+          @{sourceRun='42390454161';sourceCommit='5c42ea951dbeabc41eb58e1fc399e2d09e77cdeb';reusedGroups=$groups;reason='Only verification code and packaging metadata changed; package step verifies the exact source diff.'}|ConvertTo-Json -Depth 5|Set-Content reports/reused-evidence.json
+      - name: Recheck current version notices and synthesize current showcase
+        shell: pwsh
+        run: ./ci/run-interaction.ps1 -Mode public-release
+      - name: Recheck complete memory policy settings and active-index protection
+        if: always() && !cancelled()
+        shell: pwsh
+        run: ./ci/run-model-memory.ps1
+      - name: Recheck real llama.cpp policy unload and demand reload
+        if: always() && !cancelled()
+        shell: pwsh
+        run: ./ci/run-model-memory-real.ps1
+      - name: Validate evidence and package reviewed candidate
+        if: success()
+        shell: pwsh
+        run: ./ci/package-public.ps1 -EvidenceBase 5c42ea951dbeabc41eb58e1fc399e2d09e77cdeb -EvidenceRun 42390454161
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: public-release-reports-${{ github.run_id }}
+          path: reports/
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: SomaFinder-public-release-${{ github.run_id }}
+          path: artifacts/release/
+          retention-days: 14

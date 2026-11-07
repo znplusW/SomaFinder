@@ -112,7 +112,12 @@ internal static class ModelMemoryVerification
     sealed class Control {public Control(){}public bool HoldSearch{get;set;}public bool HoldUnload{get;set;}public bool BusySlots{get;set;}public bool ReleaseIndex{get;set;}}
     static void SetControl(string root,Control value)=>Store.Atomic(root+"/control.json",JsonSerializer.Serialize(value));
     static Control ReadControl(string root)
-    {using var stream=new FileStream(root+"/control.json",FileMode.Open,FileAccess.Read,FileShare.ReadWrite|FileShare.Delete);using var reader=new StreamReader(stream);return JsonSerializer.Deserialize<Control>(reader.ReadToEnd())!;}
+    {
+        var watch=Stopwatch.StartNew();
+        while(true)try
+        {using var stream=new FileStream(root+"/control.json",FileMode.Open,FileAccess.Read,FileShare.ReadWrite|FileShare.Delete);using var reader=new StreamReader(stream);return JsonSerializer.Deserialize<Control>(reader.ReadToEnd())!;}
+        catch(IOException ex)when(watch.Elapsed<TimeSpan.FromSeconds(2)&&(ex.HResult&0xffff) is 2 or 32 or 33){Thread.Sleep(5);}
+    }
     static int Events(string root,string value)
     {if(!File.Exists(root+"/events.txt"))return 0;using var stream=new FileStream(root+"/events.txt",FileMode.Open,FileAccess.Read,FileShare.ReadWrite);using var reader=new StreamReader(stream);return reader.ReadToEnd().Split('\n').Count(x=>x.TrimEnd('\r')==value);}
     static readonly object eventSync=new();

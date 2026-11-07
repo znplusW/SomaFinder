@@ -34,7 +34,7 @@ internal static class PublicReleaseVerification
             {
                 await Test("public binary ships complete original and third-party license notices",()=>
                 {
-                    Check(typeof(Program).Assembly.GetName().Version==new Version(0,6,6,0),"Wrong public binary version");
+                    Check(typeof(Program).Assembly.GetName().Version==new Version(0,6,7,0),"Wrong public binary version");
                     foreach(string path in new[]{"Documents/LICENSE.txt","Documents/Licensing.txt","Documents/Guides/INSTALL.en.md","Documents/Guides/INSTALL.zh-CN.md","Documents/LICENSES/FFmpeg/COPYING.GPLv3","Documents/LICENSES/FFmpeg/dependency-sources.json"})Check(File.Exists(Path.Combine(AppContext.BaseDirectory,path)),"Missing public release document: "+path);
                     Check(File.ReadAllText(Path.Combine(AppContext.BaseDirectory,"Documents/LICENSE.txt")).Contains("GNU GENERAL PUBLIC LICENSE"),"Missing GPLv3 text");
                     Check(File.ReadAllText(Path.Combine(AppContext.BaseDirectory,"Documents/Licensing.txt")).Contains("commercial"),"Missing commercial policy");return Task.CompletedTask;
@@ -46,7 +46,7 @@ internal static class PublicReleaseVerification
                     {
                         CloudVerification.Descendants<TabControl>(settings).Single().SelectedIndex=3;await Task.Delay(70);
                         var text=string.Join('\n',CloudVerification.Descendants<TextBlock>(settings).Select(t=>t.Text));
-                        Check(text.Contains("0.6.6")&&text.Contains("0.10.7")&&text.Contains("GPLv3")&&text.Contains("不附带担保"),"About/legal notice missing");
+                        Check(text.Contains("0.6.7")&&text.Contains("0.10.7")&&text.Contains("GPLv3")&&text.Contains("不附带担保"),"About/legal notice missing");
                         Check(CloudVerification.Descendants<Button>(settings).Any(b=>Equals(b.Content,"查看许可与商业授权 / Licensing")),"Licensing action missing");
                     }
                     finally{settings.Close();}

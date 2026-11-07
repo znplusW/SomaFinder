@@ -1,4 +1,4 @@
-param([string]$Version='0.6.7')
+param([string]$Version='0.6.7',[string]$EvidenceBase='',[string]$EvidenceRun='')
 $ErrorActionPreference='Stop'
 if($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ENVIRONMENT -ne 'github-hosted' -or $env:RUNNER_OS -ne 'Windows'){throw 'Hosted Windows only'}
 $root=Split-Path $PSScriptRoot -Parent
@@ -8,12 +8,21 @@ $stage=Join-Path $root ('artifacts/stage/SomaFinder-'+$Version+'-win-x64')
 if(Test-Path -LiteralPath $stage){throw 'Use a fresh release staging directory'}
 New-Item -ItemType Directory -Path $stage,$release -Force|Out-Null
 $reports=Join-Path $root 'reports';$results=@()
+$reusedGroups=@()
+if($EvidenceBase){
+    if($EvidenceBase -notmatch '^[0-9a-f]{40}$' -or $EvidenceRun -notmatch '^\d+$'){throw 'Invalid evidence identity'}
+    $allowed=@('src/SomaFinder/PublicReleaseVerification.cs','src/SomaFinder/ModelMemoryVerification.cs','ci/package-public.ps1','.github/workflows/model-memory-repair.yml')
+    $changed=@(& git -C $root diff --name-only $EvidenceBase HEAD)
+    if($LASTEXITCODE -ne 0 -or @($changed|Where-Object {$_ -notin $allowed}).Count){throw 'Production source changed; full fresh regression required'}
+    $reusedGroups=@('full-regression','current-ui','design-ui','scheduling','backend-discovery','floating-windows','waterfall-resize','waterfall','image-preview','backend-integration','search-scenario')
+}
 foreach($name in @('full-regression','current-ui','design-ui','scheduling','backend-discovery','floating-windows','waterfall-resize','waterfall','image-preview','public-release','model-memory','model-memory-real','backend-integration','search-scenario')){
     $report=Get-Content -LiteralPath (Join-Path $reports ($name+'.json')) -Raw|ConvertFrom-Json
     if($report.failures -ne 0){throw ('Failed check: '+$name)}
-    if($report.commit -and $report.commit -ne $env:GITHUB_SHA){throw 'Mixed test commits'}
+    $testedCommit=if($name -in $reusedGroups){$EvidenceBase}else{$env:GITHUB_SHA}
+    if($report.commit -and $report.commit -ne $testedCommit){throw 'Mixed test commits'}
     $count=if($report.tests){@($report.tests|Where-Object {$_.passed -eq $true -or $_.status -eq 'passed'}).Count}else{0}
-    $results+=@{name=$name;passed=$true;checks=$count}
+    $results+=@{name=$name;passed=$true;checks=$count;testedCommit=$testedCommit;reused=($name -in $reusedGroups)}
 }
 foreach($file in @('SomaFinder.exe','Components/SomaFinder.TrayHost.exe')){
     $path=Join-Path $portable $file
@@ -36,7 +45,7 @@ if(Get-ChildItem -LiteralPath $stage -Recurse -File -Force|Where-Object {$_.Exte
 if(Get-ChildItem -LiteralPath (Join-Path $stage 'Source') -Directory -Force -Recurse|Where-Object {$_.Name -in @('.git','obj','bin','data')}){throw 'Private or generated source content'}
 $expected=@('SomaFinder.exe','使用说明.txt','更新说明.txt')
 if(@(Compare-Object $expected @(Get-ChildItem -LiteralPath $stage -File|Select-Object -ExpandProperty Name)).Count){throw 'Incorrect root layout'}
-$proof=@{version=$Version;commit=$env:GITHUB_SHA;repository=$env:GITHUB_REPOSITORY;run=$env:GITHUB_RUN_ID;runUrl=('https://github.com/'+$env:GITHUB_REPOSITORY+'/actions/runs/'+$env:GITHUB_RUN_ID);environment='GitHub hosted Windows Server 2025 x64';checks=$results;localApplicationTested=$false;physicalHardwareTested=$false;syntheticScreenshots=$true;testedSomaVersion='0.10.7 native backend identity/lifecycle integration; production model workloads not exercised';testedLlamaRuntime='b10068 CPU with SHA256-verified tinyllamas GGUF';gpuMemoryReclaimMeasured=$false;sourceArchive=[IO.Path]::GetFileName($sourceZip);binarySHA256=(Get-FileHash -LiteralPath (Join-Path $stage 'SomaFinder.exe')).Hash;signature=(Get-AuthenticodeSignature -LiteralPath (Join-Path $stage 'SomaFinder.exe')).Status.ToString();license='GPL-3.0-only; separate commercial agreement available'}
+$proof=@{version=$Version;commit=$env:GITHUB_SHA;repository=$env:GITHUB_REPOSITORY;run=$env:GITHUB_RUN_ID;runUrl=('https://github.com/'+$env:GITHUB_REPOSITORY+'/actions/runs/'+$env:GITHUB_RUN_ID);environment='GitHub hosted Windows Server 2025 x64';checks=$results;evidenceBaseCommit=$EvidenceBase;evidenceBaseRun=$EvidenceRun;localApplicationTested=$false;physicalHardwareTested=$false;syntheticScreenshots=$true;testedSomaVersion='0.10.7 native backend identity/lifecycle integration; production model workloads not exercised';testedLlamaRuntime='b10068 CPU with SHA256-verified tinyllamas GGUF';gpuMemoryReclaimMeasured=$false;sourceArchive=[IO.Path]::GetFileName($sourceZip);binarySHA256=(Get-FileHash -LiteralPath (Join-Path $stage 'SomaFinder.exe')).Hash;signature=(Get-AuthenticodeSignature -LiteralPath (Join-Path $stage 'SomaFinder.exe')).Status.ToString();license='GPL-3.0-only; separate commercial agreement available'}
 $proof|ConvertTo-Json -Depth 7|Set-Content -LiteralPath (Join-Path $stage 'Documents/build-provenance.json') -Encoding utf8
 $proof|ConvertTo-Json -Depth 7|Set-Content -LiteralPath (Join-Path $release ('SomaFinder-'+$Version+'-build-provenance.json')) -Encoding utf8
 $summary="Soma Finder $Version public release candidate`nCommit: $env:GITHUB_SHA`nChecks: $(($results|Measure-Object -Property checks -Sum).Sum) passed cases in $($results.Count) groups; all selected checks passed.`nScope: frontend/package/media preview, memory-policy/task coordination, native Soma backend identity/lifecycle and real llama.cpp CPU model unload/reload; not production model/VHD/B390/physical-hardware acceptance.`nBackend compatibility: Soma 0.10.7.`nSee build-provenance.json and the public workflow for exact scope.`n"
