@@ -1,0 +1,62 @@
+name: Paused model memory candidate version assertion repair
+on:
+  push:
+    branches: ['validation/paused-index-memory-0.6.8']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  candidate:
+    runs-on: windows-2025
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.403'
+      - name: Build the unchanged production source with repaired verification assertion
+        shell: pwsh
+        run: ./构建.ps1
+      - uses: actions/download-artifact@v4
+        with:
+          name: public-release-reports-42399379167
+          path: base-reports
+          github-token: ${{ github.token }}
+          repository: znplusW/SomaFinder-Test
+          run-id: 42399379167
+      - name: Reuse passing checks only from the exact production source baseline
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force reports|Out-Null
+          $groups=@('full-regression','current-ui','design-ui','scheduling','backend-discovery','floating-windows','waterfall-resize','waterfall','image-preview','backend-integration','search-scenario','model-memory','model-memory-real')
+          foreach($name in $groups){
+            $source=Join-Path base-reports ($name+'.json')
+            $report=Get-Content -LiteralPath $source -Raw|ConvertFrom-Json
+            if($report.failures -ne 0){throw ('Cannot reuse failed check: '+$name)}
+            if($report.commit -and $report.commit -ne '74c613b20d95cc44e2c67c2ac1dce7025a1992e7'){throw 'Unexpected source commit'}
+            Copy-Item -LiteralPath $source -Destination reports
+          }
+          Copy-Item -LiteralPath base-reports/model-memory.settings.png -Destination reports
+          @{sourceRun='42399379167';sourceCommit='74c613b20d95cc44e2c67c2ac1dce7025a1992e7';reusedGroups=$groups;reason='Production code unchanged. Only the public-release version tuple assertion and packaging/workflow metadata differ; package step enforces the exact diff.'}|ConvertTo-Json -Depth 5|Set-Content reports/reused-evidence.json
+      - name: Recheck version licenses and current synthetic showcase
+        shell: pwsh
+        run: ./ci/run-interaction.ps1 -Mode public-release
+      - name: Validate source equivalence evidence and package candidate
+        if: success()
+        shell: pwsh
+        run: ./ci/package-public.ps1 -EvidenceBase 74c613b20d95cc44e2c67c2ac1dce7025a1992e7 -EvidenceRun 42399379167 -NoticeOnlyEvidence
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: public-release-reports-${{ github.run_id }}
+          path: reports/
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: SomaFinder-public-release-${{ github.run_id }}
+          path: artifacts/release/
+          retention-days: 14

@@ -34,7 +34,7 @@ internal static class PublicReleaseVerification
             {
                 await Test("public binary ships complete original and third-party license notices",()=>
                 {
-                    Check(typeof(Program).Assembly.GetName().Version==new Version(0,6,7,0),"Wrong public binary version");
+                    Check(typeof(Program).Assembly.GetName().Version==new Version(0,6,8,0),"Wrong public binary version");
                     foreach(string path in new[]{"Documents/LICENSE.txt","Documents/Licensing.txt","Documents/Guides/INSTALL.en.md","Documents/Guides/INSTALL.zh-CN.md","Documents/LICENSES/FFmpeg/COPYING.GPLv3","Documents/LICENSES/FFmpeg/dependency-sources.json"})Check(File.Exists(Path.Combine(AppContext.BaseDirectory,path)),"Missing public release document: "+path);
                     Check(File.ReadAllText(Path.Combine(AppContext.BaseDirectory,"Documents/LICENSE.txt")).Contains("GNU GENERAL PUBLIC LICENSE"),"Missing GPLv3 text");
                     Check(File.ReadAllText(Path.Combine(AppContext.BaseDirectory,"Documents/Licensing.txt")).Contains("commercial"),"Missing commercial policy");return Task.CompletedTask;

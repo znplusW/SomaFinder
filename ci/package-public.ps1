@@ -1,4 +1,4 @@
-param([string]$Version='0.6.8',[string]$EvidenceBase='',[string]$EvidenceRun='')
+param([string]$Version='0.6.8',[string]$EvidenceBase='',[string]$EvidenceRun='',[switch]$NoticeOnlyEvidence)
 $ErrorActionPreference='Stop'
 if($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ENVIRONMENT -ne 'github-hosted' -or $env:RUNNER_OS -ne 'Windows'){throw 'Hosted Windows only'}
 $root=Split-Path $PSScriptRoot -Parent
@@ -9,15 +9,18 @@ if(Test-Path -LiteralPath $stage){throw 'Use a fresh release staging directory'}
 New-Item -ItemType Directory -Path $stage,$release -Force|Out-Null
 $reports=Join-Path $root 'reports';$results=@()
 $reusedGroups=@()
+if($NoticeOnlyEvidence -and !$EvidenceBase){throw 'Notice-only evidence requires a baseline'}
 if($EvidenceBase){
     if($EvidenceBase -notmatch '^[0-9a-f]{40}$' -or $EvidenceRun -notmatch '^\d+$'){throw 'Invalid evidence identity'}
     $allowed=@('src/SomaFinder/PublicReleaseVerification.cs','src/SomaFinder/ModelMemoryVerification.cs','ci/package-public.ps1','.github/workflows/model-memory-repair.yml','src/SomaFinder/ModelMemoryPolicy.cs','src/SomaFinder/SettingsWindow.cs','README.md','README.en.md','CHANGELOG.md','docs/INSTALL.zh-CN.md','docs/INSTALL.en.md','docs/USAGE.zh-CN.md','docs/USAGE.en.md','更新说明.txt')
     $changed=@(& git -c core.quotepath=false -C $root diff --name-only $EvidenceBase HEAD)
+    if($NoticeOnlyEvidence){$allowed=@('src/SomaFinder/PublicReleaseVerification.cs','ci/package-public.ps1','.github/workflows/paused-model-memory-repair.yml')}
     if($LASTEXITCODE -ne 0 -or @($changed|Where-Object {$_ -notin $allowed}).Count){throw 'Production source changed; full fresh regression required'}
     $thresholdEdits=@{
         'src/SomaFinder/ModelMemoryPolicy.cs'=@('LowMemoryBytes=4UL*1024*1024*1024','LowMemoryBytes=2UL*1024*1024*1024')
         'src/SomaFinder/SettingsWindow.cs'=@('可用物理内存连续低于 4 GiB','可用物理内存连续低于 2 GiB')
     }
+    if($NoticeOnlyEvidence){$thresholdEdits=@{'src/SomaFinder/PublicReleaseVerification.cs'=@('new Version(0,6,7,0)','new Version(0,6,8,0)')}}
     foreach($file in $thresholdEdits.Keys|Where-Object {$_ -in $changed}){
         $before=(@(& git -C $root show ($EvidenceBase+':'+$file)) -join "`n").TrimEnd()
         if($LASTEXITCODE -ne 0 -or -not $before.Contains($thresholdEdits[$file][0])){throw 'Unexpected threshold baseline'}
@@ -25,6 +28,7 @@ if($EvidenceBase){
         if($after -cne $before.Replace($thresholdEdits[$file][0],$thresholdEdits[$file][1])){throw ('Changes beyond the verified threshold adjustment: '+$file)}
     }
     $reusedGroups=@('full-regression','current-ui','design-ui','scheduling','backend-discovery','floating-windows','waterfall-resize','waterfall','image-preview','backend-integration','search-scenario')
+    if($NoticeOnlyEvidence){$reusedGroups+=@('model-memory','model-memory-real')}
 }
 foreach($name in @('full-regression','current-ui','design-ui','scheduling','backend-discovery','floating-windows','waterfall-resize','waterfall','image-preview','public-release','model-memory','model-memory-real','backend-integration','search-scenario')){
     $report=Get-Content -LiteralPath (Join-Path $reports ($name+'.json')) -Raw|ConvertFrom-Json
