@@ -102,6 +102,8 @@ internal static class ModelMemoryVerification
             {
                 SetControl(root,new(){ReleaseIndex=true});try{await b.StopAll();}catch(Exception ex){failures++;records.Add(new{name="cleanup",passed=false,error=ex.ToString()});}
                 Store.Atomic(report,JsonSerializer.Serialize(new{commit=Environment.GetEnvironmentVariable("GITHUB_SHA"),version=typeof(Program).Assembly.GetName().Version?.ToString(),failures,tests=records,scope="Hosted Windows only. Real WPF settings, native process/TCP ownership, real spawned index/writer-lock fixtures and HTTP router protocol; virtual monotonic clock exercises the unchanged 2-minute/15-minute constants. No physical GPU memory or complete Soma/model integration."},new JsonSerializerOptions{WriteIndented=true}));
+                var diagnostic=System.IO.Path.Combine(System.IO.Path.GetDirectoryName(report)!,"model-memory-fixture");Directory.CreateDirectory(diagnostic);
+                foreach(var file in Directory.GetFiles(store.DataDirectory,"*.log",SearchOption.AllDirectories).Concat(new[]{root+"/events.txt"}).Where(File.Exists))File.Copy(file,System.IO.Path.Combine(diagnostic,System.IO.Path.GetFileName(file)),true);
                 Environment.SetEnvironmentVariable(FixtureVariable,null);b.Dispose();app.Shutdown(failures==0?0:1);
             }
         };return app.Run();
@@ -219,9 +221,29 @@ internal static class ModelMemoryVerification
             {
                 using var stream=client.GetStream();var header=new List<byte>();var one=new byte[1];
                 while(header.Count<16384){if(await stream.ReadAsync(one)==0)return;header.Add(one[0]);if(header.Count>=4&&header.TakeLast(4).SequenceEqual(new byte[]{13,10,13,10}))break;}
-                var lines=Encoding.ASCII.GetString(header.ToArray()).Split("\r\n");string path=lines[0].Split(' ')[1];int length=lines.Where(x=>x.StartsWith("Content-Length:",StringComparison.OrdinalIgnoreCase)).Select(x=>int.Parse(x[15..].Trim())).FirstOrDefault();if(length<0||length>65536)throw new IOException("Fixture body too large");var body=new byte[length];await stream.ReadExactlyAsync(body);
+                var lines=Encoding.ASCII.GetString(header.ToArray()).Split("\r\n");string path=lines[0].Split(' ')[1];byte[] body;
+                if(lines.Any(x=>x.StartsWith("Transfer-Encoding:",StringComparison.OrdinalIgnoreCase)&&x.Contains("chunked",StringComparison.OrdinalIgnoreCase)))
+                {
+                    using var decoded=new MemoryStream();
+                    while(true)
+                    {
+                        int size=Convert.ToInt32((await ReadLine(stream)).Split(';')[0],16);
+                        if(size==0){while((await ReadLine(stream)).Length>0){}break;}
+                        if(size<0||decoded.Length+size>65536)throw new IOException("Fixture chunks too large");
+                        var chunk=new byte[size];await stream.ReadExactlyAsync(chunk);decoded.Write(chunk);if((await ReadLine(stream)).Length!=0)throw new IOException("Fixture chunk terminator");
+                    }
+                    body=decoded.ToArray();
+                }
+                else
+                {int length=lines.Where(x=>x.StartsWith("Content-Length:",StringComparison.OrdinalIgnoreCase)).Select(x=>int.Parse(x[15..].Trim())).FirstOrDefault();if(length<0||length>65536)throw new IOException("Fixture body too large");body=new byte[length];await stream.ReadExactlyAsync(body);}
                 var result=await handle(path,Encoding.UTF8.GetString(body));var bytes=JsonSerializer.SerializeToUtf8Bytes(result);var prefix=Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nConnection: close\r\nContent-Length: "+bytes.Length+"\r\n\r\n");await stream.WriteAsync(prefix);await stream.WriteAsync(bytes);
             }catch(Exception ex){Console.Error.WriteLine(ex.ToString());}
+        }
+        static async Task<string> ReadLine(Stream stream)
+        {
+            var bytes=new List<byte>();var one=new byte[1];
+            while(bytes.Count<4096){if(await stream.ReadAsync(one)==0)throw new EndOfStreamException();bytes.Add(one[0]);if(bytes.Count>=2&&bytes[^2]==13&&bytes[^1]==10)return Encoding.ASCII.GetString(bytes.Take(bytes.Count-2).ToArray());}
+            throw new IOException("Fixture line too long");
         }
         public void Dispose()=>listener.Stop();
     }
