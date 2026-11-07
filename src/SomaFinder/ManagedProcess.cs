@@ -36,7 +36,7 @@ internal static class ManagedProcess
             var command=new StringBuilder(Quote(psi.FileName)+" "+string.Join(' ',psi.ArgumentList.Select(Quote)));
             if(!CreateProcessW(psi.FileName,command,0,0,true,0x08080400,environment,psi.WorkingDirectory,ref startup,out var result))Fail();
             Process process;
-            try{process=Process.GetProcessById(result.Id);process.StartInfo=psi;}
+            try{process=Process.GetProcessById(result.Id);}
             finally{CloseHandle(result.Thread);CloseHandle(result.Process);}
             int id=process.Id;jobs[id]=job;job=0;
             process.Exited+=(_,_)=>{if(jobs.TryRemove(id,out var owned))CloseHandle(owned);};process.EnableRaisingEvents=true;

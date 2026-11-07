@@ -18,6 +18,7 @@ public sealed partial class Backend : IDisposable
     readonly Dictionary<string,RootIndexProgress> rootProgress=new();
     public RootIndexProgress? RootProgress(string workspace,string root)=>rootProgress.GetValueOrDefault(workspace+"/"+root);
     readonly List<Process> services=new();
+    readonly Dictionary<int,Native.Proc> ownedIdentities=new();
     readonly SemaphoreSlim queries=new(2,2), models=new(1,1), lifecycle=new(1,1), indexing=new(1,1), inspection=new(1,1);
     readonly HttpClient http=new() { Timeout=Timeout.InfiniteTimeSpan };
     readonly AsyncLocal<int> readLease=new();
@@ -66,7 +67,8 @@ public sealed partial class Backend : IDisposable
     {
         var result=new List<Native.Proc>();
         foreach(var process in services.Concat(indexProcess==null?Array.Empty<Process>():new[]{indexProcess}))
-            try{if(!process.HasExited)result.Add(new(process.Id,0,process.StartInfo.FileName,"",process.StartTime.ToUniversalTime().Ticks,process.StartInfo.ArgumentList.ToArray()));}catch(InvalidOperationException){}
+            try{if(!process.HasExited&&ownedIdentities.TryGetValue(process.Id,out var identity)&&Native.Alive(identity))result.Add(identity);}catch(InvalidOperationException){}
+        foreach(var id in ownedIdentities.Keys.Except(result.Select(p=>p.Id)).ToArray())ownedIdentities.Remove(id);
         return result;
     }
     public async Task RecheckInstances(){external=await Inspect();lastInspect=DateTimeOffset.UtcNow;Changed?.Invoke();}
@@ -135,6 +137,7 @@ public sealed partial class Backend : IDisposable
         psi.Environment["XDG_STATE_HOME"]=System.IO.Path.GetDirectoryName(store.StateDirectory)!;
         foreach(var arg in new[]{"--workspace",ws.Name}.Concat(args)) psi.ArgumentList.Add(arg);
         var started=ManagedProcess.Start(psi);var proc=started.Process;
+        ownedIdentities[proc.Id]=new(proc.Id,Environment.ProcessId,psi.FileName,"",proc.StartTime.ToUniversalTime().Ticks,psi.ArgumentList.ToArray());
         var logPath=System.IO.Path.Combine(logDir,$"{ws.Name}-{kind}-{DateTime.UtcNow:yyyyMMddHHmmssfff}.log");
         void Log(string? line)
         {
