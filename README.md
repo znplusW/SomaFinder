@@ -5,7 +5,7 @@
 [English](README.en.md) · [下载绿色版](https://github.com/znplusW/SomaFinder/releases/latest) · [安装指南](docs/INSTALL.zh-CN.md) · [许可与商业授权](docs/LICENSING.md)
 
 ![Windows 11 x64](https://img.shields.io/badge/Windows_11-x64-0078D4)
-![Version](https://img.shields.io/badge/version-0.6.7-178E8B)
+![Version](https://img.shields.io/badge/version-0.6.8-178E8B)
 ![Soma](https://img.shields.io/badge/tested_Soma-0.10.7-555555)
 ![License](https://img.shields.io/badge/license-GPLv3_%2F_Commercial-blue)
 
@@ -22,7 +22,8 @@ Soma Finder 是面向 **Windows 11 x64** 的本地文件搜索桌面前端。它
 - **直接打开文件**：双击打开原文件，也可打开所在目录或复制路径。
 - **多窗口工作**：全局快捷键、摘要／预览独立窗口、可调面板及浅深主题。
 - **图形化索引管理**：添加／排除目录、手动／定时更新、暂停、进度与电源资源策略。
-- **可选模型内存回收**：可用内存连续低于 2 GiB 达 2 分钟，且无任务并空闲 15 分钟后回收托管模型；索引期间不回收，下次使用按需加载。
+- **可选模型内存回收**：可用内存连续低于 1 GiB 达 2 分钟，且无任务并空闲 15 分钟后回收托管模型；索引期间不回收，下次使用按需加载。
+- **暂停索引后释放模型**：独立选项，确认索引停止并持续暂停 1 分钟后回收 VL 和 OCR 组件；保留搜索模型，恢复索引即取消待执行回收并按需重新加载。
 
 ![Soma Finder 搜索界面](https://github.com/znplusW/SomaFinder/releases/download/v0.6.5/search-summary.png)
 
@@ -31,7 +32,7 @@ Soma Finder 是面向 **Windows 11 x64** 的本地文件搜索桌面前端。它
 ## 三步开始
 
 1. [部署 Soma 0.10.7 并准备模型](docs/INSTALL.zh-CN.md#1-先部署-soma-后端)。
-2. 从 [Releases](https://github.com/znplusW/SomaFinder/releases/latest) 下载 `SomaFinder-0.6.7-win-x64.zip`，完整解压后打开 `SomaFinder.exe`。
+2. 从 [Releases](https://github.com/znplusW/SomaFinder/releases/latest) 下载 `SomaFinder-0.6.8-win-x64.zip`，完整解压后打开 `SomaFinder.exe`。
 3. 在设置中选择 Soma 后端、添加索引目录，等待索引就绪，再输入你想找的内容。
 
 例如：“关于电池续航的测试报告”“海边旅行的照片”“解释接口认证流程的文档”。语义结果取决于 Soma 模型、文件内容及索引完成情况。

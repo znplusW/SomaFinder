@@ -46,7 +46,7 @@ internal static class PublicReleaseVerification
                     {
                         CloudVerification.Descendants<TabControl>(settings).Single().SelectedIndex=3;await Task.Delay(70);
                         var text=string.Join('\n',CloudVerification.Descendants<TextBlock>(settings).Select(t=>t.Text));
-                        Check(text.Contains("0.6.7")&&text.Contains("0.10.7")&&text.Contains("GPLv3")&&text.Contains("不附带担保"),"About/legal notice missing");
+                        Check(text.Contains("0.6.8")&&text.Contains("0.10.7")&&text.Contains("GPLv3")&&text.Contains("不附带担保"),"About/legal notice missing");
                         Check(CloudVerification.Descendants<Button>(settings).Any(b=>Equals(b.Content,"查看许可与商业授权 / Licensing")),"Licensing action missing");
                     }
                     finally{settings.Close();}

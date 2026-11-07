@@ -1,4 +1,4 @@
-param([string]$Dotnet = 'dotnet', [string]$OutputDirectory = (Join-Path $PSScriptRoot 'artifacts\portable'), [string]$Version='0.6.7')
+param([string]$Dotnet = 'dotnet', [string]$OutputDirectory = (Join-Path $PSScriptRoot 'artifacts\portable'), [string]$Version='0.6.8')
 $ErrorActionPreference = 'Stop'
 $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
 $project = Join-Path $PSScriptRoot 'src\SomaFinder\SomaFinder.csproj'

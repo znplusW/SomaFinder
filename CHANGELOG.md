@@ -1,5 +1,14 @@
 # Changelog / 更新记录
 
+## 0.6.8 — 2026-11-08
+
+- 新增独立、默认关闭的“索引确认暂停 1 分钟后，释放搜索不需要的模型”选项：回收托管的 VL、OCR 整理模型和 OCR 服务，保留 EMBED、EXPAND、RERANK。ASR 随索引进程退出。
+- 计时从确认索引停止后开始；每次卸载前重新核对暂停状态、任务和写入锁。恢复或暂停到期会取消待执行回收，新的暂停重新计时。已经开始的单次卸载完成后才放行新索引。
+- 低内存回收的阈值从 2 GiB 改为严格低于 1 GiB，仍需连续 2 分钟低内存和 15 分钟无任务空闲。
+- Add a separate opt-in to release index-only models after one minute of confirmed indexing pause, preserving search models. Verify pause and writer state before every release; resume cancels pending work and resets the timer.
+- Restore index-only models on demand during later indexing. ASR restarts per file; model files and completed indexes are retained. Initial extraction after reload may take longer.
+- Lower the optional low-memory threshold to strictly below 1 GiB, retaining the two-minute pressure and fifteen-minute idle requirements.
+
 ## 0.6.7 — 2026-11-08
 
 - 新增默认关闭的模型内存回收选项：可用物理内存低于 2 GiB 持续 2 分钟，且无任务并已空闲 15 分钟，才卸载托管的空闲模型。

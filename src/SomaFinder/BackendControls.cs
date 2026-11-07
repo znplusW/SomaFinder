@@ -14,7 +14,7 @@ public sealed partial class Backend
     internal IndexTrayState TrayState=>IndexTrayState.Evaluate(Busy,pauseTransition,sessionStopped,Prefs.PauseUntil,DateTimeOffset.UtcNow,Prefs.BatteryBlocksAuto&&PowerSource()!=true,Prefs.LowMemoryBlocksAuto&&!Native.EnoughMemory,Message);
     public async Task StopSession()
     {
-        sessionStopped=true;Message="正在停止索引…";Changed?.Invoke();
+        sessionStopped=true;ResetPausedIndexMemory();Message="正在停止索引…";Changed?.Invoke();
         while(pauseTransition)await Task.Delay(30);await ApplyIndexStop(true);
     }
     public string IndexPolicyReason=>sessionStopped?"索引已暂停至下次启动":TimedPaused?"索引已暂停 · 剩余 "+Rules.Remaining(Prefs.PauseUntil!.Value-DateTimeOffset.UtcNow):Prefs.BatteryBlocksAuto&&PowerSource()!=true?"电池供电或供电状态未知，自动同步暂缓":Prefs.LowMemoryBlocksAuto&&!Native.EnoughMemory?"内存不足，自动同步暂缓":"";

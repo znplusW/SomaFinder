@@ -24,7 +24,7 @@ $somaExe = "$env:USERPROFILE\Apps\Soma\soma.exe"
 
 ## 2. 下载 Soma Finder
 
-1. 从 [Soma Finder Releases](https://github.com/znplusW/SomaFinder/releases/latest) 下载 `SomaFinder-0.6.7-win-x64.zip`。
+1. 从 [Soma Finder Releases](https://github.com/znplusW/SomaFinder/releases/latest) 下载 `SomaFinder-0.6.8-win-x64.zip`。
 2. **完整解压**到可写文件夹。不要在压缩软件内直接运行，也不要只复制一个 EXE。
 3. 打开 `SomaFinder.exe`。程序自带 .NET 运行时，无需另装 .NET。
 
@@ -40,7 +40,9 @@ $somaExe = "$env:USERPROFILE\Apps\Soma\soma.exe"
 
 默认启用“使用电池时不自动同步”“切换到电池时，也停止正在进行的自动同步”“降低索引任务优先级”和低内存暂缓策略。定时自动同步需要在设置中开启；暂停状态会阻止新索引启动。
 
-“低内存且长时间空闲时，释放模型内存”默认关闭，可在“同步与资源”中选择。开启后，需同时满足可用物理内存低于 2 GiB 持续 2 分钟，以及 Soma 无任务并空闲至少 15 分钟；索引执行期间不回收。下一次需要语义模型时重新加载，会增加首次搜索的等待时间。
+“低内存且长时间空闲时，释放模型内存”默认关闭，可在“同步与资源”中选择。开启后，需同时满足可用物理内存低于 1 GiB 持续 2 分钟，以及 Soma 无任务并空闲至少 15 分钟；索引执行期间不回收。下一次需要语义模型时重新加载，会增加首次搜索的等待时间。
+
+同页另有默认关闭的“索引确认暂停 1 分钟后，释放搜索不需要的模型”。它只回收索引专用的 VL/OCR 资源；恢复索引会取消待执行回收，后续索引按需加载。两个选项独立，升级保留已有选择。
 
 ## 4. 搜索
 

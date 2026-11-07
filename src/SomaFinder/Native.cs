@@ -126,6 +126,12 @@ public static class Native
         if(memory==IntPtr.Zero)throw new IOException("无法解析 Soma 进程参数。");
         try{return Enumerable.Range(1,Math.Max(0,count-1)).Select(i=>Marshal.PtrToStringUni(Marshal.ReadIntPtr(memory,i*IntPtr.Size))??"").ToArray();}finally{LocalFree(memory);}
     }
+    internal static string[] VerifiedArguments(Proc proc)
+    {
+        using var handle=OpenProcess(0x1000,false,proc.Id);var image=new StringBuilder(32768);int length=image.Capacity;
+        if(handle.IsInvalid||!QueryFullProcessImageName(handle,0,image,ref length)||!GetProcessTimes(handle,out long created,out _,out _,out _)||!SameFilePath(image.ToString(),proc.File)||proc.StartTicks==0||Math.Abs(DateTime.FromFileTimeUtc(created).Ticks-proc.StartTicks)>TimeSpan.TicksPerSecond)throw new IOException("模型子进程身份已变化。");
+        return Arguments(proc with{Command=ProcessCommand(handle),KnownArguments=null});
+    }
     public static string WorkspaceName(Proc p)
     {
         var args=Arguments(p);for(int i=0;i<args.Length;i++){if(args[i]=="--workspace"||args[i]=="-w"){if(i+1<args.Length)return args[i+1];}else if(args[i].StartsWith("--workspace="))return args[i][12..];}return "main";

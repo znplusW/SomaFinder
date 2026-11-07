@@ -250,7 +250,7 @@ public sealed partial class Backend : IDisposable
     public async Task Pause(double hours)
     {
         if(double.IsNaN(hours)||double.IsInfinity(hours)||hours<=0||hours>87600)throw new ArgumentException("请输入大于 0 且不超过 87600 的小时数。");
-        stopEpoch++;var old=Prefs.PauseUntil;Prefs.PauseUntil=DateTimeOffset.UtcNow.AddHours(hours);try{Save();}catch{Prefs.PauseUntil=old;throw;}await ApplyPause();
+        stopEpoch++;var old=Prefs.PauseUntil;Prefs.PauseUntil=DateTimeOffset.UtcNow.AddHours(hours);try{Save();}catch{Prefs.PauseUntil=old;throw;}ResetPausedIndexMemory();await ApplyPause();
     }
     bool SharedAuto(Native.Proc process)
     {
@@ -302,9 +302,9 @@ public sealed partial class Backend : IDisposable
             external.RemoveAll(p=>!Native.Alive(p));
             Message=configuration?"正在应用目录变更":timed?(sessionStopped?"索引已暂停至下次启动，搜索可用":"索引已暂停，搜索可用"):"使用电池，自动同步已停止，搜索可用";
         }
-        finally{draining=false;pauseTransition=false;forcePause=false;Changed?.Invoke();}
+        finally{draining=false;pauseTransition=false;forcePause=false;ObserveIndexPause();Changed?.Invoke();}
     }
-    public void Continue(){var old=Prefs.PauseUntil;bool stopped=sessionStopped;Prefs.PauseUntil=null;sessionStopped=false;try{Save();}catch{Prefs.PauseUntil=old;sessionStopped=stopped;throw;}Message=IndexPolicyReason.Length>0?IndexPolicyReason:"已恢复索引，按同步设置运行";}
+    public void Continue(){var old=Prefs.PauseUntil;bool stopped=sessionStopped;Prefs.PauseUntil=null;sessionStopped=false;try{Save();}catch{Prefs.PauseUntil=old;sessionStopped=stopped;throw;}ResetPausedIndexMemory();Message=IndexPolicyReason.Length>0?IndexPolicyReason:"已恢复索引，按同步设置运行";}
     public void AbortExit(){exiting=false;draining=false;}
     public void Resumed()
     {

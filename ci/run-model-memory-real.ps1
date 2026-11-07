@@ -18,3 +18,31 @@ if(-not(Test-Path -LiteralPath $report)){throw 'Missing real runtime report'}
 $result=Get-Content -LiteralPath $report -Raw|ConvertFrom-Json
 $result.tests|Format-Table name,passed
 if($process.ExitCode -ne 0 -or $result.failures -ne 0){throw 'Real runtime checks failed'}
+
+# Independently exercise Soma's per-file ASR strategy with the exact pinned
+# whisperfile/base artifacts and official whisper.cpp sample audio. These real
+# transcriptions complement the frontend's isolated ASR lifetime fixture.
+$whisper=Join-Path $fixture 'whisperfile.exe'
+$asrModel=Join-Path $fixture 'ggml-base.bin'
+$audio=Join-Path $fixture 'jfk.wav'
+foreach($download in @(
+    @{Url='https://github.com/mozilla-ai/llamafile/releases/download/0.10.1/whisperfile-0.10.1';Path=$whisper;Hash='AF53772522F52657CED04BB232C67C9619DF20CCB4117B9211B73486E624E948'},
+    @{Url='https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-base.bin';Path=$asrModel;Hash='60ED5BC3DD14EEA856493D334349B405782DDCAF0028D4B5DF4088345FBA2EFE'},
+    @{Url='https://raw.githubusercontent.com/ggml-org/whisper.cpp/v1.8.1/samples/jfk.wav';Path=$audio;Hash='59DFB9A4ACB36FE2A2AFFC14BACBEE2920FF435CB13CC314A08C13F66BA7860E'}
+)) {
+    Invoke-WebRequest -Uri $download.Url -OutFile $download.Path -MaximumRetryCount 2 -RetryIntervalSec 2
+    if((Get-FileHash -LiteralPath $download.Path).Hash -ne $download.Hash){throw 'ASR fixture SHA256 mismatch'}
+}
+$lastPid=0
+foreach($attempt in 1..2){
+    $stdout=[IO.Path]::GetFullPath('reports/asr-transcription-'+$attempt+'.txt')
+    $stderr=[IO.Path]::GetFullPath('reports/asr-native-'+$attempt+'.txt')
+    $asr=Start-Process -FilePath $whisper -ArgumentList @('-m',('"'+$asrModel+'"'),'-f',('"'+$audio+'"'),'--language','en','--no-timestamps','--no-prints','--no-gpu') -PassThru -WindowStyle Hidden -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+    if(-not $asr.WaitForExit(120000)){$asr.Kill($true);throw 'Native ASR transcription timed out'}
+    $transcript=(Get-Content -LiteralPath $stdout -Raw).Trim()
+    if($asr.ExitCode -ne 0 -or $asr.Id -eq $lastPid -or $transcript.Length -lt 40 -or $transcript -notmatch '(?i)country'){throw ('ASR transcription/restart failed: '+$transcript)}
+    $lastPid=$asr.Id
+    $result.tests+=@([pscustomobject]@{name=('native whisperfile/base demand loads in fresh process '+$attempt);passed=$true;pid=$asr.Id;exited=$asr.HasExited;transcriptCharacters=$transcript.Length})
+}
+$result.scope+=' Separate real whisperfile 0.10.1/base-model CPU checks transcribe official whisper.cpp v1.8.1 jfk.wav twice in new exited native processes. These are ASR component checks, not full Soma multimedia indexing.'
+$result|ConvertTo-Json -Depth 8|Set-Content -LiteralPath $report -Encoding utf8

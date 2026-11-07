@@ -12,7 +12,7 @@ public static class Program
 {
     [STAThread] public static int Main(string[] args)
     {
-        if(Environment.GetEnvironmentVariable(ModelMemoryVerification.FixtureVariable)!=null&&(args.Contains("--model-memory-router-fixture")||System.IO.Path.GetFileName(Environment.ProcessPath).Equals("soma.exe",StringComparison.OrdinalIgnoreCase)))return ModelMemoryVerification.Fixture(args);
+        if(Environment.GetEnvironmentVariable(ModelMemoryVerification.FixtureVariable)!=null&&(args.Any(a=>a is "--model-memory-router-fixture" or "--model-memory-ocr-fixture" or "--model-memory-asr-fixture")||System.IO.Path.GetFileName(Environment.ProcessPath).Equals("soma.exe",StringComparison.OrdinalIgnoreCase)))return ModelMemoryVerification.Fixture(args);
         if(args.Contains("--thumbnail-worker")){RenderOptions.ProcessRenderMode=RenderMode.SoftwareOnly;return ThumbnailWorker.Run();}
         try
         {

@@ -7,13 +7,15 @@ using System.Runtime.InteropServices;
 namespace SomaFinder;
 
 // Optional llama.cpp router adapter. Unsupported or unreadable runtimes are skipped;
-// it never kills a process or changes model files, indexes or runtime configuration.
+// Only a verified owned idle OCR service can be stopped separately. Model files,
+// indexes and runtime configuration are retained for the next demand load.
 internal sealed class ModelRuntime
 {
     readonly Native.Proc owner,router;
     readonly int port;
     internal bool WasBusy {get;private set;}
     static readonly string[] roles={"VISION","OCR_CLEANUP","RERANK","EXPAND","EMBED"};
+    static readonly string[] indexRoles={"VISION","OCR_CLEANUP"};
     internal ModelRuntime(Native.Proc owner,Native.Proc router,int port){this.owner=owner;this.router=router;this.port=port;}
     internal static IEnumerable<ModelRuntime> Find(Native.Proc owner)
     {
@@ -23,7 +25,7 @@ internal sealed class ModelRuntime
         }
     }
     bool Verified()=>Native.Alive(owner)&&Native.Alive(router)&&ListeningPorts(router.Id).SequenceEqual(new[]{port});
-    internal async Task<int> ReleaseIdleModels(Func<bool> allowed)
+    internal async Task<int> ReleaseIdleModels(Func<bool> allowed,bool indexOnly=false)
     {
         using var http=new HttpClient(new HttpClientHandler{UseProxy=false,AllowAutoRedirect=false}){BaseAddress=new Uri("http://127.0.0.1:"+port),Timeout=TimeSpan.FromSeconds(3)};
         async Task<JsonElement> Read(string path)
@@ -39,6 +41,8 @@ internal sealed class ModelRuntime
         if(entries.Any(m=>State(m) is not ("loaded" or "unloaded" or "sleeping" or "failed"))){WasBusy=true;return 0;}
         var loaded=entries.Where(m=>State(m)=="loaded").ToArray();
         if(loaded.Any(m=>!m.TryGetProperty("id",out var id)||!roles.Contains(id.GetString(),StringComparer.Ordinal)))return 0;
+        var selected=indexOnly?indexRoles:roles;
+        loaded=loaded.Where(m=>selected.Contains(m.GetProperty("id").GetString(),StringComparer.Ordinal)).ToArray();
         foreach(var model in loaded)
         {
             if(!allowed())return 0;
@@ -46,7 +50,7 @@ internal sealed class ModelRuntime
             if(!IdleSlots(slots)){WasBusy=true;return 0;}
         }
         int count=0;
-        foreach(var role in roles.Where(r=>loaded.Any(m=>m.GetProperty("id").GetString()==r)))
+        foreach(var role in selected.Where(r=>loaded.Any(m=>m.GetProperty("id").GetString()==r)))
         {
             if(!allowed()||!Verified())break;
             // Recheck immediately before each request; the frontend activity gate
@@ -69,6 +73,24 @@ internal sealed class ModelRuntime
             }
             if(!unloaded)throw new TimeoutException("等待空闲模型释放内存超时。");
             count++;
+        }
+        return count;
+    }
+    // Soma recreates its managed OCR service on demand if the old process exited.
+    // ASR is a per-file child of the index process, released by the existing pause
+    // process-tree/job shutdown; never guess that a running transcription is idle.
+    internal static async Task<int> ReleaseOcrService(Native.Proc owner,Func<bool> allowed)
+    {
+        int count=0;
+        foreach(var child in Native.Descendants(owner).Where(p=>p.ParentId==owner.Id&&System.IO.Path.GetFileName(p.File).Equals("rapidocr.exe",StringComparison.OrdinalIgnoreCase)))
+        {
+            if(!allowed()||!Native.Alive(owner))break;
+            var args=Native.VerifiedArguments(child);
+            if(!args.Contains("serve")||!args.Contains("127.0.0.1"))continue;
+            int portIndex=Array.IndexOf(args,"--port");
+            if(portIndex<0||portIndex+1>=args.Length||!int.TryParse(args[portIndex+1],out int ocrPort)||!ListeningPorts(child.Id).SequenceEqual(new[]{ocrPort}))continue;
+            if(!allowed()||!Native.Alive(owner))break;
+            await Task.Run(()=>Native.Stop(child));count++;
         }
         return count;
     }

@@ -20,6 +20,7 @@ public sealed class Preferences
     public Dictionary<string,string> AutoGroups {get;set;}=new(StringComparer.OrdinalIgnoreCase);
     public bool LowMemoryBlocksAuto { get; set; } = true;
     public bool ReleaseIdleModelsOnLowMemory { get; set; }
+    public bool ReleaseIndexModelsWhenPaused { get; set; }
     public bool LowerPriority { get; set; } = true;
     public bool ExitOnLastWindow { get; set; }
     public bool HotkeyNewWindow { get; set; }
