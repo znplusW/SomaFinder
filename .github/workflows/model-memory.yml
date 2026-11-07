@@ -3,6 +3,11 @@ on:
   push:
     branches: ['test/model-memory-20261107']
   workflow_dispatch:
+    inputs:
+      scope:
+        type: choice
+        options: [full, real]
+        default: full
 permissions:
   contents: read
 jobs:
@@ -17,20 +22,24 @@ jobs:
       - name: Build complete portable candidate
         id: build
         shell: pwsh
-        run: ./构建.ps1
+        run: |
+          if('${{ inputs.scope }}' -eq 'real') {
+            dotnet publish src/SomaFinder/SomaFinder.csproj -c Release --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None -o artifacts/portable
+            if($LASTEXITCODE -ne 0){throw 'Publish failed'}
+          } else { ./构建.ps1 }
       - name: Memory policy settings lifecycle and HTTP integration
         id: memory
-        if: always() && steps.build.outcome == 'success'
+        if: always() && steps.build.outcome == 'success' && inputs.scope != 'real'
         shell: pwsh
         run: ./ci/run-model-memory.ps1
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && inputs.scope != 'real'
         with:
           name: model-memory-core-${{ github.run_id }}
           path: reports/
           retention-days: 14
       - name: Directly affected frontend and scheduling regression
-        if: success()
+        if: success() && inputs.scope != 'real'
         shell: pwsh
         run: ./ci/run-regression.ps1 -Scope targeted
       - name: Real llama.cpp unload and demand reload
@@ -38,11 +47,11 @@ jobs:
         shell: pwsh
         run: ./ci/run-model-memory-real.ps1
       - name: Backend identity and lifecycle integration after native inventory change
-        if: success()
+        if: success() && inputs.scope != 'real'
         shell: pwsh
         run: ./ci/run-integration.ps1 -Scope backends
       - name: Search cancellation and deferred backend work
-        if: success()
+        if: success() && inputs.scope != 'real'
         shell: pwsh
         run: |
           $report=[IO.Path]::GetFullPath('reports/search-scenario.json')

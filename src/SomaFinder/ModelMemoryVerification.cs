@@ -194,13 +194,13 @@ internal static class ModelMemoryVerification
             backend=new(store,new Preferences{SomaExe=runtime+"/soma.exe",StartupSync=false,PeriodicSync=false});await backend.Initialize(false);
             async Task Search()=>await backend.Search("needle","vector",new(){docs},20);
             await Search();var owner=(await Native.SomaProcesses(runtime+"/soma.exe")).Single(Native.IsServer);var runtimeData=await WaitRuntime(root);int routerPid=runtimeData.GetProperty("pid").GetInt32();
-            var adapter=ModelRuntime.Find(owner).Single();var before=Native.Descendants(owner).Where(p=>p.ParentId==routerPid).ToArray();if(before.Length!=1)throw new Exception("Expected one real model worker");
+            var adapter=ModelRuntime.Find(owner).Single();var tree=Native.Descendants(owner);var before=tree.Where(p=>p.Id!=routerPid&&Native.SameFilePath(p.File,realExecutable)).ToArray();if(before.Length!=1)throw new Exception("Expected one real model worker: "+JsonSerializer.Serialize(tree));
             using var worker=Process.GetProcessById(before[0].Id);long beforeWorkingSet=worker.WorkingSet64,beforePrivate=worker.PrivateMemorySize64;string indexHash=Store.Digest(store.StateDirectory+"/main.sqlite");
             long clock=0;backend.MemoryClock=()=>clock;backend.AvailableMemory=()=>1;backend.Prefs.ReleaseIdleModelsOnLowMemory=true;backend.Resumed();await backend.Pulse();
             for(int i=0;i<180&&Native.Alive(before[0]);i++){clock+=10000;await backend.Pulse();}
             if(Native.Alive(before[0])||!Native.Alive(owner)||!backend.ModelMemoryStatus.Contains("已卸载"))throw new Exception("Real model policy did not release idle worker: "+backend.ModelMemoryStatus);
             records.Add(new{name="production policy unloads actual llama.cpp b10068 worker and retains router",passed=true,oldWorkerPid=before[0].Id,workingSetBefore=beforeWorkingSet,privateBytesBefore=beforePrivate,virtualElapsedMilliseconds=clock});
-            var watch=Stopwatch.StartNew();await Search();var after=Native.Descendants(owner).Where(p=>p.ParentId==routerPid).ToArray();if(after.Length!=1||after[0].Id==before[0].Id)throw new Exception("Real model did not autoload in a new worker");
+            var watch=Stopwatch.StartNew();await Search();var after=Native.Descendants(owner).Where(p=>p.Id!=routerPid&&Native.SameFilePath(p.File,realExecutable)).ToArray();if(after.Length!=1||after[0].Id==before[0].Id)throw new Exception("Real model did not autoload in a new worker");
             records.Add(new{name="next real completion autoloads model and completes",passed=true,newWorkerPid=after[0].Id,reloadMilliseconds=watch.Elapsed.TotalMilliseconds});
             if(Store.Digest(store.StateDirectory+"/main.sqlite")!=indexHash)throw new Exception("Index changed during real runtime unload");records.Add(new{name="retained synthetic index bytes unchanged",passed=true});
         }
