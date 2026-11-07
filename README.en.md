@@ -5,7 +5,7 @@
 [简体中文](README.md) · [Download](https://github.com/znplusW/SomaFinder/releases/latest) · [Installation guide](docs/INSTALL.en.md) · [Licensing](docs/LICENSING.md)
 
 ![Windows 11 x64](https://img.shields.io/badge/Windows_11-x64-0078D4)
-![Version](https://img.shields.io/badge/version-0.6.6-178E8B)
+![Version](https://img.shields.io/badge/version-0.6.7-178E8B)
 ![Soma](https://img.shields.io/badge/tested_Soma-0.10.7-555555)
 ![License](https://img.shields.io/badge/license-GPLv3_%2F_Commercial-blue)
 
@@ -22,6 +22,7 @@ Soma Finder is a local file-search desktop frontend for **Windows 11 x64**, powe
 - **Open original files** — double-click to open, reveal in Explorer, or copy a path.
 - **Multiple windows** — a global hotkey, detachable summary/preview panes, resizable layouts, and light/dark themes.
 - **Indexing controls** — folder inclusion/exclusion, manual/scheduled updates, pause controls, progress, and power/resource policies.
+- **Optional model memory reclaim** — unload managed idle models only after available RAM stays below 4 GiB for two minutes and Soma has no tasks for 15 minutes; never during indexing, with demand loading on the next request.
 
 ![Soma Finder search interface](https://github.com/znplusW/SomaFinder/releases/download/v0.6.5/search-summary.png)
 
@@ -30,7 +31,7 @@ Soma Finder is a local file-search desktop frontend for **Windows 11 x64**, powe
 ## Get started
 
 1. [Deploy Soma 0.10.7 and prepare its models](docs/INSTALL.en.md#1-deploy-the-soma-backend-first).
-2. Download `SomaFinder-0.6.6-win-x64.zip` from [Releases](https://github.com/znplusW/SomaFinder/releases/latest), extract the entire folder, and open `SomaFinder.exe`.
+2. Download `SomaFinder-0.6.7-win-x64.zip` from [Releases](https://github.com/znplusW/SomaFinder/releases/latest), extract the entire folder, and open `SomaFinder.exe`.
 3. Select the Soma executable in Settings, add folders to the index, and wait for indexing before searching.
 
 Try descriptions such as “battery-life test reports” or “documents explaining API authentication.” Semantic results depend on the backend models, file contents, and indexing state.

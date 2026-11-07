@@ -15,26 +15,27 @@ jobs:
         with:
           dotnet-version: '10.0.403'
       - name: Publish affected application
+        id: build
         shell: pwsh
         run: dotnet publish src/SomaFinder/SomaFinder.csproj -c Release --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None -p:DebugSymbols=false -o artifacts/portable
       - name: Memory policy settings lifecycle and HTTP integration
-        if: success()
+        if: always() && steps.build.outcome == 'success'
         shell: pwsh
         run: ./ci/run-model-memory.ps1
       - name: Directly affected frontend and scheduling regression
-        if: always() && success()
+        if: always() && steps.build.outcome == 'success'
         shell: pwsh
         run: ./ci/run-regression.ps1 -Scope targeted
       - name: Real llama.cpp unload and demand reload
-        if: always() && success()
+        if: always() && steps.build.outcome == 'success'
         shell: pwsh
         run: ./ci/run-model-memory-real.ps1
       - name: Backend identity and lifecycle integration after native inventory change
-        if: always() && success()
+        if: always() && steps.build.outcome == 'success'
         shell: pwsh
         run: ./ci/run-integration.ps1 -Scope backends
       - name: Search cancellation and deferred backend work
-        if: always() && success()
+        if: always() && steps.build.outcome == 'success'
         shell: pwsh
         run: |
           $report=[IO.Path]::GetFullPath('reports/search-scenario.json')

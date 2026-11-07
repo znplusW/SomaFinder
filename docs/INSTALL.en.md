@@ -24,7 +24,7 @@ Downloading the backend EXE alone does not complete semantic indexing. Initial s
 
 ## 2. Download Soma Finder
 
-1. Download `SomaFinder-0.6.6-win-x64.zip` from [Releases](https://github.com/znplusW/SomaFinder/releases/latest).
+1. Download `SomaFinder-0.6.7-win-x64.zip` from [Releases](https://github.com/znplusW/SomaFinder/releases/latest).
 2. Extract the **entire** folder to a writable location. Do not run it inside an archive manager or copy only the EXE.
 3. Open `SomaFinder.exe`. The .NET runtime is included.
 
@@ -39,6 +39,8 @@ The top level contains the application, Chinese usage notes, and release notes. 
 5. Indexing follows your sync settings and current policies, or you can request a manual update. Keyword indexing may become useful before semantic indexing is ready; progress is shown in the status bar and Settings.
 
 The defaults block automatic sync on battery, stop a running automatic sync when switching to battery, lower indexing priority, and defer automatic sync under low memory. Periodic sync must be enabled in Settings. A pause blocks new indexing work.
+
+Optional model memory reclaim is disabled by default under Sync and Resources. Both conditions must hold: available physical RAM below 4 GiB continuously for two minutes, and no Soma tasks for at least 15 minutes. It never reclaims during indexing. The next semantic request reloads the required model and takes longer to start.
 
 ## 4. Search
 

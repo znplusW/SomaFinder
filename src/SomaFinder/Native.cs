@@ -149,8 +149,8 @@ public static class Native
     [StructLayout(LayoutKind.Sequential,CharSet=CharSet.Unicode)] struct ProcessEntry
     {public uint Size,Usage,Id;public UIntPtr Heap;public uint Module,Threads,Parent;public int BasePriority;public uint Flags;[MarshalAs(UnmanagedType.ByValTStr,SizeConst=260)]public string Name;}
     [DllImport("kernel32.dll",SetLastError=true)]static extern SafeFileHandle CreateToolhelp32Snapshot(uint flags,uint id);
-    [DllImport("kernel32.dll",CharSet=CharSet.Unicode,ExactSpelling=true)]static extern bool Process32FirstW(SafeFileHandle snapshot,ref ProcessEntry entry);
-    [DllImport("kernel32.dll",CharSet=CharSet.Unicode,ExactSpelling=true)]static extern bool Process32NextW(SafeFileHandle snapshot,ref ProcessEntry entry);
+    [DllImport("kernel32.dll",CharSet=CharSet.Unicode,ExactSpelling=true,SetLastError=true)]static extern bool Process32FirstW(SafeFileHandle snapshot,ref ProcessEntry entry);
+    [DllImport("kernel32.dll",CharSet=CharSet.Unicode,ExactSpelling=true,SetLastError=true)]static extern bool Process32NextW(SafeFileHandle snapshot,ref ProcessEntry entry);
     public static List<Proc> Descendants(Proc owner)
     {
         var result=new List<Proc>();if(!Alive(owner))return result;
