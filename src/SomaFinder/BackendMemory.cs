@@ -13,6 +13,7 @@ public sealed partial class Backend
     internal Func<long> MemoryClock {get;set;}=()=>Environment.TickCount64;
     internal Func<ulong?> AvailableMemory {get;set;}=()=>Native.AvailablePhysicalMemory;
     public string ModelMemoryStatus {get;private set;}="";
+    internal object MemorySnapshot=>new{now=MemoryClock(),available=AvailableMemory(),memoryUsers,busy=MemoryBusy,InstanceConflict,policy=memoryPolicy.Snapshot,owners=Owned().Select(p=>new{p.Id,p.File,args=Native.Arguments(p)}).ToArray()};
 
     // Register before waiting, including queued requests. Keep this lease until the
     // real request finishes; cancelling a window's wait must never make it idle.

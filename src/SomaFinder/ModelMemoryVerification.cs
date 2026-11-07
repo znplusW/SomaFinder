@@ -66,10 +66,10 @@ internal static class ModelMemoryVerification
                     restored.IsChecked=false;CloudVerification.Descendants<Button>(next).Single(c=>c.Content as string=="取消").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Check(b.Prefs.ReleaseIdleModelsOnLowMemory,"Cancel applied draft");
                 });
                 await Test("disabled option never unloads after prolonged low memory and idleness",async()=>
-                {await Reset(false);int before=Events(root,"unload-start");await Advance(1200);Check(Events(root,"unload-start")==before,"Disabled unload");});
+                {await Search();await Reset(false);int before=Events(root,"unload-start");await Advance(1200);Check(Events(root,"unload-start")==before,"Disabled unload");});
                 await Test("both timers unload idle models while retaining server PID, keyword data and index bytes",async()=>
                 {
-                    await Reset();string digest=Store.Digest(store.StateDirectory+"/main.sqlite");int before=Events(root,"unload-start");await Advance(890);Check(Events(root,"unload-start")==before,"Before 15 minutes");await Advance(10);Check(Events(root,"unload-start")==before+1,"No unload at eligibility: "+b.ModelMemoryStatus);Check(Store.Digest(store.StateDirectory+"/main.sqlite")==digest,"Index modified");
+                    await Search();await Reset();string digest=Store.Digest(store.StateDirectory+"/main.sqlite");int before=Events(root,"unload-start");await Advance(890);Check(Events(root,"unload-start")==before,"Before 15 minutes");await Advance(10);Check(Events(root,"unload-start")==before+1,"No unload at eligibility: "+b.ModelMemoryStatus+" "+JsonSerializer.Serialize(b.MemorySnapshot));Check(Store.Digest(store.StateDirectory+"/main.sqlite")==digest,"Index modified");
                     var hits=await b.Search("needle","lexical",new(){docs},20);Check(hits.Count==1,"Keyword search lost");
                 });
                 await Test("next semantic search autoloads model and returns results after reclaim",async()=>
@@ -135,7 +135,7 @@ internal static class ModelMemoryVerification
         }
         if(args.Contains("--model-memory-router-fixture"))
         {
-            bool loaded=true;using var router=new MiniServer(async(path,body)=>
+            bool loaded=false;using var router=new MiniServer(async(path,body)=>
             {
                 string route=path.Split('?')[0];
                 if(route=="/models")return new{data=new[]{new{id="EXPAND",status=new{value=loaded?"loaded":"unloaded"}}}};

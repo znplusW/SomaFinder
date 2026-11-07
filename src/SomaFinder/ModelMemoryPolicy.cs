@@ -9,6 +9,7 @@ internal sealed class ModelMemoryPolicy
     long? lowSince,idleSince,lastSample;
     bool enabled;
     long retryAfter;
+    internal object Snapshot=>new{lowSince,idleSince,lastSample,enabled,retryAfter};
 
     internal void Reset(){lowSince=null;idleSince=null;lastSample=null;enabled=false;retryAfter=0;}
     internal void Activity(){idleSince=null;}
